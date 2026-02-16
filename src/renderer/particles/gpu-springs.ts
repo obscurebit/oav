@@ -129,6 +129,7 @@ export class GPUSpringSystem {
       return;
     }
 
+    console.log(`[Springs] Creating grid: ${cols}x${rows}, color: [${config.color.join(', ')}]`);
     this._nodeCount = nodeCount;
     this._springs = [];
 
@@ -326,7 +327,11 @@ export class GPUSpringSystem {
 
   /** Render the spring mesh (lines + nodes). */
   render(): void {
-    if (this._nodeCount === 0) return;
+    if (this._nodeCount === 0) {
+      // Debug: Log that render is being skipped due to no nodes
+      // console.log("[Springs] Render skipped: no nodes");
+      return;
+    }
 
     const gl = this._gl;
 
@@ -389,6 +394,7 @@ export class GPUSpringSystem {
 
   /** Clear the mesh (remove all nodes and springs) */
   clear(): void {
+    console.log(`[Springs] Clearing mesh: ${this._nodeCount} nodes, ${this._springs.length} springs`);
     this._nodeCount = 0;
     this._springs = [];
     // Clear node data
