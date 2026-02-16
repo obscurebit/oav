@@ -11,7 +11,7 @@ import {
 } from "./renderer";
 import { Audio } from "./audio";
 import { TextParticleSystem, TextOverlay, WordInput } from "./overlay";
-import { Director, AmbientVoice, ToolBridge, Poet } from "./llm";
+import { Director, AmbientVoice, ToolBridge, Poet, PRESETS } from "./llm";
 import type { DirectorContext, ToolCall, PoetContext, PoetDirective, PoetStyle } from "./llm";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -570,6 +570,25 @@ window.addEventListener("mousemove", markInteraction, { once: true });
   get audioStarted() { return audioStarted; },
   setParam: (name: string, value: number) => params.set(name, value),
   driftParam: (name: string, target: number, duration: number) => params.drift(name, target, duration),
+  applyPreset: (preset: string) => toolBridge.execute([{
+    id: "test", type: "function",
+    function: { name: "apply_preset", arguments: JSON.stringify({ preset }) },
+  }]),
+  /** Immediately set all params for a preset (no drift) — for testing. */
+  setPresetImmediate: (preset: string) => {
+    const resetVals = PRESETS["reset"];
+    const presetVals = PRESETS[preset];
+    if (!presetVals) return;
+    // First reset all params to baseline
+    for (const [name, value] of Object.entries(resetVals)) {
+      if (params.has(name)) params.set(name, value as number);
+    }
+    // Then apply preset values immediately
+    for (const [name, value] of Object.entries(presetVals)) {
+      if (params.has(name)) params.set(name, value as number);
+    }
+  },
+  clearParticles: () => particles.clear(),
 };
 
 // --- Scene transition tracking ---
@@ -591,7 +610,8 @@ function frame(now: number) {
     timeline.prune(clock.elapsed);
   }
 
-  input.applyTo(params);
+  input.tick(dt);
+  input.applyTo(params, dt);
   audio.update();
   params.set("amplitude", audio.amplitude);
   params.set("bass", audio.bass);
