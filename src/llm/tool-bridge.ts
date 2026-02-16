@@ -38,7 +38,7 @@ export const PRESETS: Record<string, Record<string, number>> = {
   storm:       { speed: 3.0, warp: 2.5, strobe: 0.4, aberration: 0.5, intensity: 0.85, contrast: 1.5 },
   aurora:      { hue: 0.38, bloom: 1.0, wobble: 0.4, saturation: 1.6, warmth: -0.3, speed: 0.6, warp: 0.8 },
   lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8 },
-  fireworks:   { bloom: 2.0, strobe: 0.6, saturation: 2.0, speed: 3.0, zoom: 0.3, intensity: 1.0, warmth: 0.5, aberration: 0.4, warp: 1.5, contrast: 1.8, spin: 0.3 },
+  fireworks:   { bloom: 0.8, strobe: 0.5, saturation: 1.4, speed: 2.0, zoom: 0.5, intensity: 0.95, warmth: 0.6, contrast: 2.2, vignette: 1.5, hue: 0.05, warp: 0.3, spin: 0, aberration: 0.1, noise_scale: 5, ridge: 0.5 },
   void:        { zoom: 4.5, spin: 1.5, intensity: 0.05, warp: 2.5, saturation: 0, contrast: 2.5, vignette: 2.0, aberration: 0.7, speed: 2.0 },
   reset:       { intensity: 0.5, speed: 1, hue: 0, saturation: 1, contrast: 1, warmth: 0, gamma: 1, invert: 0,
                  zoom: 1, rotation: 0, symmetry: 0, mirror_x: 0, mirror_y: 0, warp: 0.5, noise_scale: 3,
