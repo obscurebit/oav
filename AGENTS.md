@@ -4,9 +4,8 @@
 **OAV** — Obscure Audio Visual. A browser-based demoscene trackmo: real-time, time-based audiovisual experience.
 
 ## Key Documents
-- `docs/Browser_Trackmo_PRD.md` — Product requirements
-- `docs/Browser_Trackmo_ARCH.md` — Architecture overview
-- `docs/adr/` — Architecture Decision Records
+- `docs/MANIFESTO.md` — Creative vision and interaction principles
+- `docs/adr/` — Architecture Decision Records (9 ADRs covering all major decisions)
 
 ## Tech Stack
 | Concern | Choice |
@@ -95,9 +94,11 @@ src/
 2. **Pull model** — No events; consumers read state each frame
 3. **Nothing blocks the render loop** — No awaits, no network calls in the hot path
 4. **Single state flow** — `clock.tick() → timeline.getTransitionState() → renderer.draw()`
-5. **Dual-LLM architecture** — Director (nemotron, tool-calling) sculpts the engine; Poet (llama-4-scout, text-only) generates display words. Director triggers Poet after executing tool calls. Clean separation: no thinking/tool leakage into display text.
-6. **LLM never in render path** — Both LLM calls are fully async, fire-and-forget from the frame loop.
-7. **Magnitude-driven Poet** — Director's tool calls are scored (0-1 magnitude). Low magnitude = silence (no Poet call). High magnitude = dramatic title. The Poet receives a style directive (silence/whisper/voice/echo/title) that shapes its output.
+5. **Director-controlled narrative** — Director controls all scene transitions via tools, no auto-cycling
+6. **Dual-LLM architecture** — Director (nemotron, tool-calling) sculpts the engine; Poet (llama-4-scout, text-only) generates display text. Director triggers Poet after executing tool calls. Clean separation: no thinking/tool leakage into display text.
+7. **LLM never in render path** — Both LLM calls are fully async, fire-and-forget from the frame loop.
+8. **Magnitude-driven Poet** — Director's tool calls are scored (0-1 magnitude). Low magnitude = silence (no Poet call). High magnitude = dramatic title. The Poet receives a style directive (silence/whisper/voice/echo/title) that shapes its output.
+9. **Professional effects systems** — GPU particles, mass-spring physics, enhanced fireworks, dynamic music generation
 
 ## Testing
 ```sh
@@ -137,7 +138,7 @@ npx vite --port 5173
 - [x] Audio overhaul — 4-layer drone (sub bass, harmonics, filtered noise, ethereal pad) + convolver reverb + scene-reactive mixing
 - [x] Shader upgrade — shared noise.glsl (simplex, fbm, domain warp, cosine palettes), all 4 scenes rewritten
 - [x] Click pulse — uPulse uniform with expanding shockwave ring in all shaders, exponential decay
-- [x] Infinite timeline — auto-extending scene cycles with randomized durations, never ends
+- [x] Director-controlled timeline — Director controls all scene transitions, no auto-cycling
 - [x] Letter-by-letter word emergence — addVoiceRevealed spawns staggered character particles
 - [x] Themed scene titles — SCENE_THEMES with distinct fonts/colors per scene, letter-by-letter reveal on transition
 - [x] Audio-reactive text particles — bass pulses scale, amplitude drifts velocity
@@ -148,9 +149,9 @@ npx vite --port 5173
 - [x] InputReactor — instant typing reactions (speed tracking, 80+ mood/color words → immediate param changes)
 - [x] LLM response feedback — classify affirm/deflect/ambient, distinct visual flash for each
 - [x] Expanded visual parameter system — 30+ shader uniforms (color, geometry, pattern, motion, post-fx)
-- [x] Shared post.glsl — coordinate transforms (zoom, rotation, symmetry, mirror, wobble, pixelate) + post-processing (saturation, contrast, bloom, grain, glitch, aberration, strobe, etc.)
+- [x] Shared post.glsl — coordinate transforms + color post-fx for all scenes
 - [x] noise.glsl expanded — ridged noise, voronoi/cellular, hash functions
-- [x] 9 LLM tools — speak, shift_mood, whisper, set/drift/pulse_param (30 params each), transition_to, spawn_particles, apply_preset
+- [x] 9 LLM tools — speak, shift_mood, whisper, set/drift/pulse params (30 params each), transition_to, spawn_particles, apply_preset
 - [x] 21 named visual presets (noir, vaporwave, psychedelic, fire, ice, cosmic, dream, nightmare, etc.)
 - [x] 119 unit tests passing
 - [x] Dual-LLM architecture — Director (nemotron, engine control) + Poet (llama-4-scout, poetic text)
@@ -158,11 +159,15 @@ npx vite --port 5173
 - [x] Aggressive thinking fragment filter (blocks process/reasoning, numbers, technical terms)
 - [x] Magnitude calculator — scores Director tool calls (0-1), maps to PoetStyle (silence/whisper/voice/echo/title)
 - [x] PoetDirective — Director→Poet communication includes magnitude, style hint, action summary
-- [x] Infinite portal — no outro in auto-cycle, random scene flow (intro/build/climax), never-ending
 - [x] Scene transition debug logging (SCENE tag in overlay)
 - [x] GPU particle system — 16K particles via WebGL2 transform feedback (fireworks, fountains, sparkles)
 - [x] Mass-spring system — spring-centric jello/cloth/tendril meshes (Hooke's law + damping)
-- [x] GPU tools — firework, sparkle, poke_springs (LLM-triggered particle/spring effects)
+- [x] GPU tools — firework, sparkle, poke_springs, enhanced_firework (LLM-triggered particle/spring effects)
+- [x] Professional fireworks system — 5 types with multi-stage explosions, trails, and sparkles
+- [x] Dynamic music generator — Procedural composition with mood-based generation and real-time control
+- [x] Enhanced audio analysis — amplitude, bass, mid, high, beat detection, rhythmic intensity
+- [x] Audio debug overlay section — Real-time audio parameter monitoring
+- [x] 32 word presets from SCENE_THEMES — Individual dramatic words with visual themes
 - [ ] WebGPU upgrade path (Phase 2)
 
 ## GPU Systems

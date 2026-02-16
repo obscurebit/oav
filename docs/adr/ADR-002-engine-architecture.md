@@ -22,16 +22,20 @@ The ARCH doc specifies: `clock → timeline → state → render → audio sync`
 - Emits no events — consumers read on each frame (pull model, not push)
 
 ### Timeline
-- An ordered list of `TimelineEntry { startTime, endTime, sceneId, transition? }`
+- An ordered list of `TimelineEntry { startTime, endTime, sceneId, transitionDuration? }`
 - `getActiveScene(time)` returns current scene ID + normalized progress `[0,1]`
-- Transition overlap is allowed — renderer decides how to blend
+- `getTransitionState(time)` returns current/previous scenes + blend factor for crossfades
+- Director-controlled: only intro seeded initially, Director adds all subsequent scenes
+- `add(entry)` for Director to add scenes, `prune(beforeTime)` for cleanup
 
 ### Main Loop
 - Owns `requestAnimationFrame`
-- Each frame: `clock.tick()` → `timeline.getActiveScene()` → `renderer.draw()` → `audio.update()`
+- Each frame: `clock.tick()` → `timeline.getTransitionState()` → `renderer.draw()` → `audio.update()`
 - Never awaits anything in the hot path
+- Director updates via tool bridge (async, fire-and-forget)
 
 ## Consequences
 - All core primitives are pure and testable without a browser (no DOM/WebGL dependency)
 - The pull model avoids event-ordering bugs and keeps the frame budget predictable
-- Adding the LLM director later is just another source of `parameterStore.patch()` calls
+- Director controls narrative flow via `timeline.add()` through tool bridge
+- Scene transitions are smooth crossfades with automatic title triggers

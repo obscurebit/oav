@@ -23,7 +23,9 @@ You type into the void. Your letters scatter like startled birds. The world *hea
 - **Magnitude-driven responses** — subtle changes produce silence; dramatic shifts produce titles
 - **21 named visual presets** — noir, vaporwave, psychedelic, cosmic, dream, nightmare, and more
 - **Artful text input** — type into the void, characters scatter as particles
-- **Infinite portal** — scenes cycle fluidly in random order, never repeating, never ending
+- **Director-controlled narrative** — LLM Director controls scene flow, creating intentional story arcs
+- **Professional fireworks** — 5 types (chrysanthemum, willow, palm, crossette, salute) with trails and sparkles
+- **Dynamic music generator** — Procedural composition with mood-based generation and real-time control
 
 ## Quick Start
 

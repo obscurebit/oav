@@ -23,7 +23,30 @@ The voice is an LLM, but the user should never feel that. They should feel they 
 ### 3. The Visitor
 You. You don't fill out forms. You don't click buttons. You simply *type into the void* and your words appear — not in a text box, but woven into the visual fabric. Your keystrokes ripple outward. Your words drift and fade. And the world *hears* you.
 
-The voice may respond. The colors may shift. The tempo may change. A new word may appear that recontextualizes everything you just said.
+---
+
+## Director-Controlled Narrative Flow
+
+### Creative Control
+The LLM Director now has complete control over the narrative flow. Scenes no longer auto-cycle randomly. The Director intentionally sequences scenes based on creative intent, user interaction, and emotional context.
+
+### Scene Transitions
+- **Director calls** `transition_to(scene_id, duration)` to change scenes
+- **Smooth crossfades** between scenes (3-second default)
+- **Scene titles** automatically appear with proper styling
+- **No more disconnected random scene flipping**
+
+### Timeline Management
+- **Intro only** is seeded initially (30s fixed duration)
+- **Director controls** all subsequent scene timing
+- **Manual cleanup** of old timeline entries
+- **Director decides** when to add new scenes
+
+### Creative Benefits
+- **Intentional storytelling** with dramatic moments
+- **User-responsive** narrative based on interaction
+- **Coherent emotional arcs** through scene choices
+- **Full integration** with word presets and visual themes
 
 ---
 
@@ -36,9 +59,7 @@ There are no text inputs, no cursors, no UI elements. The entire screen is the e
 This is not a chat. The voice does not say "How can I help you?" It says things like:
 
 > *"the weight of a color you haven't named yet"*
-
 > *"you keep circling back"*
-
 > *"listen — the low frequencies know something"*
 
 It is poetic, oblique, sometimes unsettling, always beautiful. It responds to the *feeling* of what you type, not the literal content.
@@ -48,8 +69,10 @@ The LLM runs asynchronously. When it has something to say, the words emerge grad
 
 ### Touch Changes Everything
 - **Mouse movement** shifts the palette and intensity (already implemented)
-- **Clicking** sends a pulse through the visual field — a heartbeat
-- **Typing** feeds words into the world; they appear as drifting glyphs
+- **Keyboard typing** creates text particles that drift and fade
+- **Audio analysis** drives visual parameters in real-time
+- **LLM responses** trigger visual changes via tools
+- **Director decisions** control scene transitions and timing
 - **Silence** is also an input — if you stop interacting, the voice may notice
 
 ---

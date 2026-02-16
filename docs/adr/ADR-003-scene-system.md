@@ -28,10 +28,17 @@ Each scene owns its own shader program, VAO, and uniforms. The shared fullscreen
 A `SceneRegistry` maps scene IDs (from Timeline entries) to Scene instances. The Renderer queries the registry each frame based on the active scene from the Timeline.
 
 ### Transitions
-The Timeline is extended to support overlapping entries. When two scenes overlap:
+The Timeline supports overlapping entries with `transitionDuration`. When two scenes overlap:
 1. Both scenes render to the screen (or to FBOs for advanced blending)
 2. A transition progress value `[0,1]` drives the blend
 3. For MVP: simple alpha crossfade via `gl.blendFunc`. No FBOs needed.
+4. Director controls all transitions via `transition_to` tool (no auto-cycling)
+
+### Scene Control
+- **Director-controlled**: Only intro scene seeded initially
+- **Tool-based transitions**: Director calls `transition_to(scene_id, duration)`
+- **Automatic titles**: Scene titles trigger on transitions with proper styling
+- **No auto-cycling**: Director decides when and how to transition
 
 ### Shared Uniforms
 All scenes receive the same `SceneState` (time, beat, params, progress, resolution). Each scene decides which params it cares about.
@@ -39,9 +46,11 @@ All scenes receive the same `SceneState` (time, beat, params, progress, resoluti
 ## Consequences
 - **Pro**: Each scene is self-contained — easy to add new visuals without touching other code
 - **Pro**: Scenes can be developed and tested independently
+- **Pro**: Director has complete creative control over scene flow
 - **Pro**: Transition logic is centralized in the Renderer, not scattered across scenes
 - **Con**: Each scene compiles its own shader program (acceptable — we have <10 scenes)
 - **Con**: FBO-based transitions deferred to a later iteration
+- **Con**: Director must actively manage scene progression (intentional design choice)
 
 ## Alternatives Considered
 - **Single uber-shader with branching**: Rejected — hard to maintain, wastes GPU on unused branches
