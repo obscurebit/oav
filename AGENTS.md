@@ -158,7 +158,7 @@ npx vite --port 5173
 - The app starts rendering immediately (no click gate yet) for dev convenience; click gate exists for future audio context unlock
 - Click anywhere to start audio (AudioContext requires user gesture)
 - Audio params: `amplitude`, `bass`, `brightness` — fed from WebAudio AnalyserNode each frame
-- Mouse influence is velocity-based, not position-based: movement energy → speed/warp, horizontal flow → warmth, vertical flow → intensity, stillness → calms glitch/strobe/aberration. `input.tick(dt)` must be called before `input.applyTo(params, dt)`
+- Mouse influence is click-and-drag only (hovering does nothing). Gesture vocabulary: tap → mood pulse, press-and-hold → bloom/vignette/warmth, rapid clicks → speed/glitch/strobe, slow drag → warp/wobble, fast drag → speed/warp/aberration/spin, stillness (3s+) → calms harsh effects. `input.tick(dt)` must be called before `input.applyTo(params, dt)`
 - LLM API key via `VITE_LLM_API_KEY` env var; without it, AmbientVoice fallback is used
 - LLM base URL via `VITE_LLM_BASE_URL` env var (default: NVIDIA NIM)
 - LLM model override via `VITE_LLM_MODEL` env var (default: nvidia/llama-3.3-nemotron-super-49b-v1.5)

@@ -612,6 +612,14 @@ function frame(now: number) {
 
   input.tick(dt);
   input.applyTo(params, dt);
+
+  // Tap gesture → mood-appropriate pulse reaction (replaces old click handler)
+  if (input.tapped) {
+    const { mood, confidence } = detectMood();
+    applyMoodReaction(mood.click, confidence);
+    lastUserInteraction = clock.elapsed;
+  }
+
   audio.update();
   params.set("amplitude", audio.amplitude);
   params.set("bass", audio.bass);
@@ -671,7 +679,7 @@ function frame(now: number) {
   // Show interaction hint if no activity after 15s
   if (!hintShown && !anyInteraction && clock.elapsed > 15) {
     hintShown = true;
-    particles.addWhisper("click anywhere · type into the void", canvas.width, canvas.height);
+    particles.addWhisper("touch the void · type into the dark", canvas.width, canvas.height);
   }
 
   // Update and render text particles (audio-reactive)
@@ -712,18 +720,14 @@ function frame(now: number) {
   requestAnimationFrame(frame);
 }
 
-// Click handler — first click starts audio, every click triggers mood-appropriate reaction
+// First mousedown starts audio (AudioContext requires user gesture)
 let audioStarted = false;
-canvas.addEventListener("click", () => {
+canvas.addEventListener("mousedown", () => {
   if (!audioStarted) {
     audio.init();
     audio.playDrone();
     audioStarted = true;
   }
-
-  // Auto-themed click reaction — adapts to current visual state
-  const { mood, confidence } = detectMood();
-  applyMoodReaction(mood.click, confidence);
   lastUserInteraction = clock.elapsed;
 });
 
