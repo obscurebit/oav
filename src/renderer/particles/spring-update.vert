@@ -65,10 +65,44 @@ void main() {
   float jy = hash(uTime + float(gl_VertexID) * 13.7) * 2.0 - 1.0;
   totalForce += vec2(jx, jy) * uJiggle;
 
-  // Euler integration
+  // Paper-inspired Euler integration with improved stability
   vec2 accel = totalForce / max(aMass, 0.001);
-  vec2 newVel = (aVelocity + accel * uDt) * (1.0 - uDamping);
+  
+  // Semi-implicit Euler integration for better stability
+  // Update velocity first, then position using new velocity
+  vec2 newVel = aVelocity + accel * uDt;
+  
+  // Apply global damping (velocity-based, not force-based)
+  newVel = newVel * (1.0 - uDamping * uDt);
+  
+  // Clamp maximum velocity to prevent instability
+  float maxVel = 5.0;
+  float velMag = length(newVel);
+  if (velMag > maxVel) {
+    newVel = normalize(newVel) * maxVel;
+  }
+  
   vec2 newPos = aPosition + newVel * uDt;
+
+  // Simple boundary collision (keep jello on screen)
+  float boundary = 0.95;
+  float restitution = 0.6; // bounce factor
+  
+  if (newPos.x < -boundary) {
+    newPos.x = -boundary;
+    newVel.x = abs(newVel.x) * restitution;
+  } else if (newPos.x > boundary) {
+    newPos.x = boundary;
+    newVel.x = -abs(newVel.x) * restitution;
+  }
+  
+  if (newPos.y < -boundary) {
+    newPos.y = -boundary;
+    newVel.y = abs(newVel.y) * restitution;
+  } else if (newPos.y > boundary) {
+    newPos.y = boundary;
+    newVel.y = -abs(newVel.y) * restitution;
+  }
 
   vPosition = newPos;
   vVelocity = newVel;

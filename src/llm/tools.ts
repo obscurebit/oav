@@ -392,6 +392,7 @@ Available presets:
 - "lava": red/orange hue, high warp, ridge
 - "fireworks": warm burst colors, high contrast, dark sky + GPU firework bursts
 - "jello": soft, wobbling spring mesh with pink/purple hues + interactive jello physics
+- "cloth": fabric-like hanging mesh with blue tones, realistic cloth behavior + higher resolution
 - "sparkle_field": cool blue/purple tones with ambient sparkle particles across screen
 - "electric_storm": high energy, strobing, with electric particle bursts + jiggling spring mesh
 - "void": extreme zoom, spin, warp, darkobe, vivid color, zoomed out, fast, warm bursts
@@ -406,7 +407,7 @@ Available presets:
             "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
             "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
             "crystal", "organic", "digital", "zen", "storm", "aurora", "lava", 
-            "fireworks", "jello", "sparkle_field", "electric_storm", "void", "reset",
+            "fireworks", "jello", "cloth", "sparkle_field", "electric_storm", "void", "reset",
           ],
           description: "The preset to apply.",
         },

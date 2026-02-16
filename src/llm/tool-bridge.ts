@@ -40,6 +40,7 @@ export const PRESETS: Record<string, Record<string, number>> = {
   lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8 },
   fireworks:   { bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, hue: 0.05, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3 },
   jello:       { bloom: 0.3, saturation: 0.8, speed: 0.6, zoom: 0.8, intensity: 0.5, warmth: 0.2, contrast: 1.3, vignette: 0.8, hue: 0.4, warp: 0.1, spin: 0, aberration: 0, noise_scale: 2, ridge: 0 },
+  cloth:       { bloom: 0.2, saturation: 0.6, speed: 0.3, zoom: 1.0, intensity: 0.4, warmth: 0.1, contrast: 1.2, vignette: 0.6, hue: 0.55, warp: 0.05, spin: 0, aberration: 0, noise_scale: 1.5, ridge: 0 },
   sparkle_field: { bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, hue: 0.6, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0 },
   electric_storm: { bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, hue: 0.6, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3 },
   void:        { zoom: 4.5, spin: 1.5, intensity: 0.05, warp: 2.5, saturation: 0, contrast: 2.5, vignette: 2.0, aberration: 0.7, speed: 2.0 },
@@ -302,18 +303,33 @@ export class ToolBridge {
       setTimeout(() => oav.gpuParticles.firework(0.3, -0.1, 1.0), 200);
       setTimeout(() => oav.gpuParticles.firework(0.0, 0.4, 0.6), 400);
     } else if (preset === "jello" && oav?.gpuSprings) {
-      // Reset and configure jello mesh
+      // Enhanced jello mesh with paper-inspired parameters
       oav.gpuSprings.createGrid({
-        cols: 20, rows: 15,
+        cols: 24, rows: 18, // Higher resolution for better cloth behavior
         originX: -0.6, originY: -0.4,
         width: 1.2, height: 0.8,
-        stiffness: 60, damping: 1.5,
-        mass: 0.015,
-        pinnedRow: 14, // pin top row
+        stiffness: 80, damping: 2.0, // Slightly stiffer for better jello feel
+        mass: 0.012, // Lighter mass for more responsiveness
+        pinnedRow: 17, // pin top row
         color: [0.8, 0.4, 0.6],
       });
-      oav.gpuSprings.gravity = [0, -0.3];
-      oav.gpuSprings.damping = 0.02;
+      oav.gpuSprings.gravity = [0, -0.2]; // Gentle gravity for floating jello feel
+      oav.gpuSprings.damping = 0.015; // Lower damping for more wobble
+      oav.gpuSprings.drawLines = true;
+      oav.gpuSprings.drawNodes = false;
+    } else if (preset === "cloth" && oav?.gpuSprings) {
+      // Fabric-like cloth mesh with paper-inspired parameters
+      oav.gpuSprings.createGrid({
+        cols: 30, rows: 22, // Higher resolution for realistic fabric
+        originX: -0.7, originY: -0.5,
+        width: 1.4, height: 1.0,
+        stiffness: 120, damping: 3.5, // Stiffer for fabric behavior
+        mass: 0.008, // Very light mass
+        pinnedRow: 21, // pin top row like hanging cloth
+        color: [0.4, 0.6, 0.9], // Cool blue fabric
+      });
+      oav.gpuSprings.gravity = [0, -0.4]; // Stronger gravity for hanging cloth
+      oav.gpuSprings.damping = 0.025; // Higher damping for fabric feel
       oav.gpuSprings.drawLines = true;
       oav.gpuSprings.drawNodes = false;
     } else if (preset === "sparkle_field" && oav?.gpuParticles) {

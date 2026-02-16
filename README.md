@@ -52,6 +52,3 @@ See [DEVELOPERS.md](DEVELOPERS.md) for full setup, architecture, and testing det
 - [docs/Browser_Trackmo_ARCH.md](docs/Browser_Trackmo_ARCH.md) — Architecture overview
 - [docs/adr/](docs/adr/) — Architecture Decision Records (ADR-001 through ADR-008)
 
-## License
-
-MIT

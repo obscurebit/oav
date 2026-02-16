@@ -168,7 +168,7 @@ export class GPUSpringSystem {
       for (let c = 0; c < cols; c++) {
         const idx = r * cols + c;
 
-        // Structural springs (horizontal + vertical)
+        // Structural springs (horizontal + vertical) - primary constraints
         if (c < cols - 1) {
           this._springs.push({ a: idx, b: idx + 1, stiffness, damping: springDamp, restLength: dx });
         }
@@ -176,7 +176,7 @@ export class GPUSpringSystem {
           this._springs.push({ a: idx, b: idx + cols, stiffness, damping: springDamp, restLength: dy });
         }
 
-        // Shear springs (diagonals) — resist shearing
+        // Shear springs (diagonals) — resist shearing deformation
         if (c < cols - 1 && r < rows - 1) {
           const diag = Math.sqrt(dx * dx + dy * dy);
           this._springs.push({ a: idx, b: idx + cols + 1, stiffness: stiffness * 0.5, damping: springDamp * 0.5, restLength: diag });
@@ -189,6 +189,14 @@ export class GPUSpringSystem {
         }
         if (r < rows - 2) {
           this._springs.push({ a: idx, b: idx + cols * 2, stiffness: stiffness * 0.25, damping: springDamp * 0.25, restLength: dy * 2 });
+        }
+
+        // Bend resistance springs (skip two) - paper-inspired for better cloth behavior
+        if (c < cols - 3) {
+          this._springs.push({ a: idx, b: idx + 3, stiffness: stiffness * 0.1, damping: springDamp * 0.1, restLength: dx * 3 });
+        }
+        if (r < rows - 3) {
+          this._springs.push({ a: idx, b: idx + cols * 3, stiffness: stiffness * 0.1, damping: springDamp * 0.1, restLength: dy * 3 });
         }
       }
     }
@@ -218,7 +226,7 @@ export class GPUSpringSystem {
       this._nodeData[off + 9] = 0;
     }
 
-    // Accumulate spring forces
+    // Accumulate spring forces using paper's mathematical approach
     for (const spring of this._springs) {
       const offA = spring.a * FLOATS_PER_NODE;
       const offB = spring.b * FLOATS_PER_NODE;
@@ -229,30 +237,47 @@ export class GPUSpringSystem {
       const bx = this._nodeData[offB + 0];
       const by = this._nodeData[offB + 1];
 
-      // Direction A→B
-      let dx = bx - ax;
-      let dy = by - ay;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 0.0001) continue;
-
-      dx /= dist;
-      dy /= dist;
-
-      // Hooke's law: F = k * (dist - restLength)
-      const stretch = dist - spring.restLength;
-      const springForce = spring.stiffness * stretch;
-
-      // Damping: F_d = d * (relativeVelocity · direction)
+      // Velocity
       const avx = this._nodeData[offA + 2];
       const avy = this._nodeData[offA + 3];
       const bvx = this._nodeData[offB + 2];
       const bvy = this._nodeData[offB + 3];
-      const relVel = (bvx - avx) * dx + (bvy - avy) * dy;
-      const dampForce = spring.damping * relVel;
 
-      const totalForce = springForce + dampForce;
+      // Direction vector from A to B
+      let dx = bx - ax;
+      let dy = by - ay;
+      const currentLength = Math.sqrt(dx * dx + dy * dy);
+      
+      // Prevent division by zero and handle degenerate springs
+      if (currentLength < 0.0001) {
+        // If springs are completely collapsed, apply small random force
+        const angle = Math.random() * Math.PI * 2;
+        dx = Math.cos(angle);
+        dy = Math.sin(angle);
+      } else {
+        dx /= currentLength;
+        dy /= currentLength;
+      }
+
+      // Hooke's Law: F_spring = k * (currentLength - restLength)
+      const stretch = currentLength - spring.restLength;
+      const springForce = spring.stiffness * stretch;
+
+      // Improved damping: F_damping = d * (relativeVelocity · direction)
+      // Relative velocity along spring direction
+      const relVelX = bvx - avx;
+      const relVelY = bvy - avy;
+      const relVelAlongSpring = relVelX * dx + relVelY * dy;
+      
+      // Apply damping only when springs are compressing/extending
+      const dampingForce = spring.damping * relVelAlongSpring;
+
+      // Total force along spring direction
+      const totalForce = springForce + dampingForce;
 
       // Apply equal and opposite forces (Newton's third law)
+      // Force on node A: +F (toward B if stretched, away if compressed)
+      // Force on node B: -F (toward A if stretched, away if compressed)
       this._nodeData[offA + 8] += totalForce * dx;
       this._nodeData[offA + 9] += totalForce * dy;
       this._nodeData[offB + 8] -= totalForce * dx;
