@@ -395,6 +395,12 @@ Available presets:
 - "cloth": fabric-like hanging mesh with blue tones, realistic cloth behavior + higher resolution
 - "sparkle_field": cool blue/purple tones with ambient sparkle particles across screen
 - "electric_storm": high energy, strobing, with electric particle bursts + jiggling spring mesh
+
+Word presets - dramatic scene titles with matching visual themes:
+- Intro words: "emergence", "genesis", "the_void_stirs", "first_light", "awakening", "from_nothing", "signal", "origin"
+- Build words: "complexity", "the_pattern_grows", "deep_structure", "convergence", "lattice", "unfolding", "tessellation"  
+- Climax words: "rupture", "supernova", "the_storm", "critical_mass", "detonation", "singularity", "overload", "ignition"
+- Outro words: "dissolution", "ash", "the_long_fade", "entropy", "remnant", "afterglow", "silence", "return"
 - "void": extreme zoom, spin, warp, darkobe, vivid color, zoomed out, fast, warm bursts
 - "void": near-zero intensity, invert, slow, dark
 - "reset": return all params to defaults`,
@@ -407,7 +413,12 @@ Available presets:
             "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
             "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
             "crystal", "organic", "digital", "zen", "storm", "aurora", "lava", 
-            "fireworks", "jello", "cloth", "sparkle_field", "electric_storm", "void", "reset",
+            "fireworks", "jello", "cloth", "sparkle_field", "electric_storm",
+            "emergence", "genesis", "the_void_stirs", "first_light", "awakening", "from_nothing", "signal", "origin",
+            "complexity", "the_pattern_grows", "deep_structure", "convergence", "lattice", "unfolding", "tessellation",
+            "rupture", "supernova", "the_storm", "critical_mass", "detonation", "singularity", "overload", "ignition",
+            "dissolution", "ash", "the_long_fade", "entropy", "remnant", "afterglow", "silence", "return",
+            "void", "reset",
           ],
           description: "The preset to apply.",
         },

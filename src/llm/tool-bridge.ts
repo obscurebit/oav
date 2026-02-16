@@ -43,12 +43,68 @@ export const PRESETS: Record<string, Record<string, number>> = {
   cloth:       { bloom: 0.2, saturation: 0.6, speed: 0.3, zoom: 1.0, intensity: 0.4, warmth: 0.1, contrast: 1.2, vignette: 0.6, hue: 0.55, warp: 0.05, spin: 0, aberration: 0, noise_scale: 1.5, ridge: 0 },
   sparkle_field: { bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, hue: 0.6, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0 },
   electric_storm: { bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, hue: 0.6, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3 },
+  
+  // Word presets - dramatic scene titles with matching visuals
+  emergence: { bloom: 0.4, saturation: 0.7, speed: 0.3, zoom: 1.2, intensity: 0.6, warmth: 0.1, contrast: 1.3, vignette: 0.6, hue: 0.58, warp: 0.2, spin: 0, aberration: 0, noise_scale: 1.8, ridge: 0 },
+  genesis: { bloom: 0.6, saturation: 0.9, speed: 0.4, zoom: 1.0, intensity: 0.7, warmth: 0.2, contrast: 1.4, vignette: 0.5, hue: 0.55, warp: 0.15, spin: 0.1, aberration: 0.05, noise_scale: 2, ridge: 0.1 },
+  the_void_stirs: { bloom: 0.2, saturation: 0.4, speed: 0.2, zoom: 1.5, intensity: 0.3, warmth: -0.1, contrast: 1.1, vignette: 0.8, hue: 0.6, warp: 0.3, spin: -0.1, aberration: 0.1, noise_scale: 1.5, ridge: 0 },
+  first_light: { bloom: 1.0, saturation: 0.8, speed: 0.5, zoom: 0.8, intensity: 0.8, warmth: 0.3, contrast: 1.6, vignette: 0.4, hue: 0.52, warp: 0.1, spin: 0.2, aberration: 0, noise_scale: 2.5, ridge: 0.2 },
+  awakening: { bloom: 0.7, saturation: 1.0, speed: 0.6, zoom: 0.9, intensity: 0.75, warmth: 0.25, contrast: 1.5, vignette: 0.5, hue: 0.48, warp: 0.25, spin: 0.15, aberration: 0.08, noise_scale: 3, ridge: 0.15 },
+  from_nothing: { bloom: 0.1, saturation: 0.3, speed: 0.15, zoom: 2.0, intensity: 0.2, warmth: -0.2, contrast: 1.0, vignette: 1.0, hue: 0.62, warp: 0.4, spin: -0.2, aberration: 0.15, noise_scale: 1, ridge: 0 },
+  signal: { bloom: 0.5, strobe: 0.3, saturation: 0.9, speed: 1.2, zoom: 1.1, intensity: 0.7, warmth: 0, contrast: 1.8, vignette: 0.3, hue: 0.45, warp: 0.2, spin: 0.3, aberration: 0.2, noise_scale: 4, ridge: 0.1, glitch: 0.1 },
+  origin: { bloom: 0.3, saturation: 0.6, speed: 0.35, zoom: 1.3, intensity: 0.65, warmth: 0.15, contrast: 1.35, vignette: 0.55, hue: 0.5, warp: 0.18, spin: 0.05, aberration: 0.03, noise_scale: 2.2, ridge: 0.05 },
+  
+  // Build words - structural, technical themes
+  complexity: { bloom: 0.2, saturation: 0.8, speed: 0.7, zoom: 0.7, intensity: 0.6, warmth: 0.3, contrast: 1.6, vignette: 0.4, hue: 0.08, warp: 0.3, spin: 0.2, aberration: 0.1, noise_scale: 3.5, ridge: 0.2, edge: 0.3 },
+  the_pattern_grows: { bloom: 0.3, saturation: 0.9, speed: 0.8, zoom: 0.6, intensity: 0.7, warmth: 0.35, contrast: 1.7, vignette: 0.3, hue: 0.12, warp: 0.4, spin: 0.25, aberration: 0.12, noise_scale: 4, ridge: 0.25, cells: 0.2 },
+  deep_structure: { bloom: 0.15, saturation: 0.6, speed: 0.5, zoom: 0.8, intensity: 0.5, warmth: 0.25, contrast: 1.8, vignette: 0.6, hue: 0.15, warp: 0.35, spin: 0.15, aberration: 0.08, noise_scale: 2.8, ridge: 0.3, edge: 0.4 },
+  convergence: { bloom: 0.5, saturation: 1.1, speed: 0.9, zoom: 0.5, intensity: 0.8, warmth: 0.4, contrast: 1.9, vignette: 0.2, hue: 0.1, warp: 0.45, spin: 0.3, aberration: 0.15, noise_scale: 4.5, ridge: 0.2, symmetry: 2 },
+  lattice: { bloom: 0.25, saturation: 0.7, speed: 0.6, zoom: 0.9, intensity: 0.55, warmth: 0.2, contrast: 1.5, vignette: 0.5, hue: 0.18, warp: 0.25, spin: 0.1, aberration: 0.05, noise_scale: 2.5, ridge: 0.15, symmetry: 4 },
+  unfolding: { bloom: 0.4, saturation: 0.85, speed: 0.65, zoom: 0.75, intensity: 0.65, warmth: 0.3, contrast: 1.4, vignette: 0.45, hue: 0.22, warp: 0.3, spin: 0.18, aberration: 0.1, noise_scale: 3, ridge: 0.1 },
+  tessellation: { bloom: 0.35, saturation: 0.75, speed: 0.55, zoom: 0.85, intensity: 0.6, warmth: 0.28, contrast: 1.45, vignette: 0.48, hue: 0.25, warp: 0.28, spin: 0.12, aberration: 0.07, noise_scale: 2.7, ridge: 0.12, symmetry: 6, cells: 0.3 },
+  
+  // Climax words - explosive, intense themes
+  rupture: { bloom: 0.8, strobe: 0.6, saturation: 1.3, speed: 2.8, zoom: 0.4, intensity: 0.9, warmth: 0.6, contrast: 2.2, vignette: 0.2, hue: 0.02, warp: 0.6, spin: 0.4, aberration: 0.4, noise_scale: 7, ridge: 0.5, glitch: 0.2 },
+  supernova: { bloom: 1.5, saturation: 1.4, speed: 3.2, zoom: 0.3, intensity: 1.0, warmth: 0.7, contrast: 2.5, vignette: 0.1, hue: 0.05, warp: 0.8, spin: 0.5, aberration: 0.6, noise_scale: 8, ridge: 0.6, glitch: 0.3 },
+  the_storm: { bloom: 0.6, strobe: 0.4, saturation: 1.1, speed: 2.5, zoom: 0.5, intensity: 0.85, warmth: 0.4, contrast: 2.0, vignette: 0.3, hue: 0.15, warp: 0.5, spin: 0.35, aberration: 0.3, noise_scale: 6, ridge: 0.4, glitch: 0.15 },
+  critical_mass: { bloom: 0.7, strobe: 0.5, saturation: 1.2, speed: 2.2, zoom: 0.45, intensity: 0.88, warmth: 0.5, contrast: 2.1, vignette: 0.25, hue: 0.08, warp: 0.55, spin: 0.38, aberration: 0.35, noise_scale: 6.5, ridge: 0.45, glitch: 0.25 },
+  detonation: { bloom: 1.2, saturation: 1.0, speed: 3.5, zoom: 0.35, intensity: 0.95, warmth: 0.8, contrast: 2.3, vignette: 0.15, hue: 0.03, warp: 0.7, spin: 0.45, aberration: 0.5, noise_scale: 7.5, ridge: 0.55, glitch: 0.4 },
+  singularity: { bloom: 2.0, saturation: 0.9, speed: 4.0, zoom: 0.2, intensity: 1.0, warmth: 0.9, contrast: 2.8, vignette: 0.05, hue: 0.01, warp: 1.0, spin: 0.6, aberration: 0.8, noise_scale: 10, ridge: 0.7, glitch: 0.5 },
+  overload: { bloom: 0.9, strobe: 0.7, saturation: 1.5, speed: 2.0, zoom: 0.6, intensity: 0.92, warmth: 0.55, contrast: 2.4, vignette: 0.18, hue: 0.12, warp: 0.48, spin: 0.32, aberration: 0.42, noise_scale: 5.5, ridge: 0.35, glitch: 0.35 },
+  ignition: { bloom: 1.1, saturation: 1.1, speed: 2.6, zoom: 0.42, intensity: 0.87, warmth: 0.65, contrast: 2.0, vignette: 0.22, hue: 0.06, warp: 0.52, spin: 0.36, aberration: 0.38, noise_scale: 6.2, ridge: 0.38, glitch: 0.18 },
+  
+  // Outro words - fading, dissolution themes
+  dissolution: { bloom: 0.15, saturation: 0.4, speed: 0.18, zoom: 1.8, intensity: 0.25, warmth: -0.15, contrast: 0.9, vignette: 1.2, hue: 0.65, warp: 0.15, spin: -0.15, aberration: 0.12, noise_scale: 0.8, ridge: 0 },
+  ash: { bloom: 0.08, saturation: 0.2, speed: 0.12, zoom: 2.2, intensity: 0.15, warmth: -0.25, contrast: 0.8, vignette: 1.5, hue: 0.7, warp: 0.1, spin: -0.1, aberration: 0.08, noise_scale: 0.5, ridge: 0, grain: 0.3 },
+  the_long_fade: { bloom: 0.2, saturation: 0.5, speed: 0.25, zoom: 1.6, intensity: 0.3, warmth: -0.1, contrast: 1.0, vignette: 1.0, hue: 0.62, warp: 0.18, spin: -0.08, aberration: 0.1, noise_scale: 1.2, ridge: 0 },
+  entropy: { bloom: 0.12, saturation: 0.3, speed: 0.2, zoom: 2.0, intensity: 0.22, warmth: -0.2, contrast: 0.85, vignette: 1.3, hue: 0.68, warp: 0.22, spin: -0.12, aberration: 0.15, noise_scale: 0.7, ridge: 0, glitch: 0.05 },
+  remnant: { bloom: 0.25, saturation: 0.6, speed: 0.3, zoom: 1.4, intensity: 0.4, warmth: -0.05, contrast: 1.1, vignette: 0.8, hue: 0.58, warp: 0.2, spin: -0.05, aberration: 0.08, noise_scale: 1.5, ridge: 0.05 },
+  afterglow: { bloom: 0.4, saturation: 0.7, speed: 0.4, zoom: 1.2, intensity: 0.5, warmth: 0.05, contrast: 1.2, vignette: 0.6, hue: 0.55, warp: 0.25, spin: 0, aberration: 0.05, noise_scale: 1.8, ridge: 0.1 },
+  silence: { bloom: 0.05, saturation: 0.15, speed: 0.08, zoom: 2.5, intensity: 0.1, warmth: -0.3, contrast: 0.7, vignette: 1.8, hue: 0.72, warp: 0.08, spin: -0.18, aberration: 0.05, noise_scale: 0.3, ridge: 0 },
+  return: { bloom: 0.3, saturation: 0.55, speed: 0.35, zoom: 1.3, intensity: 0.45, warmth: 0, contrast: 1.15, vignette: 0.7, hue: 0.52, warp: 0.12, spin: -0.02, aberration: 0.06, noise_scale: 1.6, ridge: 0.08 },
+  
   void:        { zoom: 4.5, spin: 1.5, intensity: 0.05, warp: 2.5, saturation: 0, contrast: 2.5, vignette: 2.0, aberration: 0.7, speed: 2.0 },
   reset:       { intensity: 0.5, speed: 1, hue: 0, saturation: 1, contrast: 1, warmth: 0, gamma: 1, invert: 0,
                  zoom: 1, rotation: 0, symmetry: 0, mirror_x: 0, mirror_y: 0, warp: 0.5, noise_scale: 3,
                  octaves: 5, lacunarity: 2, grain: 0, pixelate: 0, edge: 0, ridge: 0, cells: 0,
                  drift_x: 0, drift_y: 0, spin: 0, wobble: 0, strobe: 0, bloom: 0, vignette: 0.5,
                  aberration: 0, glitch: 0, feedback: 0 },
+};
+
+// Map word presets back to original scene themes for text rendering
+const WORD_TO_SCENE_THEME: Record<string, string> = {
+  // Intro words
+  emergence: "intro", genesis: "intro", the_void_stirs: "intro", first_light: "intro",
+  awakening: "intro", from_nothing: "intro", signal: "intro", origin: "intro",
+  // Build words  
+  complexity: "build", the_pattern_grows: "build", deep_structure: "build",
+  convergence: "build", lattice: "build", unfolding: "build", tessellation: "build",
+  // Climax words
+  rupture: "climax", supernova: "climax", the_storm: "climax", critical_mass: "climax",
+  detonation: "climax", singularity: "climax", overload: "climax", ignition: "climax",
+  // Outro words
+  dissolution: "outro", ash: "outro", the_long_fade: "outro", entropy: "outro",
+  remnant: "outro", afterglow: "outro", silence: "outro", return: "outro",
 };
 
 export class ToolBridge {
@@ -395,6 +451,20 @@ export class ToolBridge {
       setTimeout(() => clearInterval(interval), 30000);
       }
     }
+
+    // Handle word presets - show dramatic scene title
+    const sceneTheme = WORD_TO_SCENE_THEME[preset];
+    if (sceneTheme && typeof window !== 'undefined') {
+      const oav = (window as any).__OAV__;
+      if (oav?.particles?.showSceneTitle) {
+        // Get canvas dimensions from the renderer
+        const canvas = oav.renderer?._gl?.canvas;
+        if (canvas) {
+          oav.particles.showSceneTitle(sceneTheme, canvas.width, canvas.height);
+        }
+      }
+    }
+
     let count = 0;
     for (const [name, target] of Object.entries(values)) {
       if (!p.has(name)) continue;
