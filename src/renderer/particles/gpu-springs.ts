@@ -92,8 +92,8 @@ export class GPUSpringSystem {
 
   // Rendering
   color: [number, number, number] = [0.4, 0.7, 1.0];
-  drawLines = true;
-  drawNodes = true;
+  drawLines = false; // Disabled by default to prevent line artifacts
+  drawNodes = false; // Disabled by default
 
   constructor(gl: WebGL2RenderingContext) {
     this._gl = gl;

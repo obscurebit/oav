@@ -46,20 +46,7 @@ const gpuSprings = new GPUSpringSystem(gl);
 renderer.gpuParticles = gpuParticles;
 renderer.gpuSprings = gpuSprings;
 
-// Create a default jello mesh (can be reconfigured by presets/LLM)
-gpuSprings.createGrid({
-  cols: 16, rows: 12,
-  originX: -0.5, originY: -0.3,
-  width: 1.0, height: 0.6,
-  stiffness: 80, damping: 2.0,
-  mass: 0.02,
-  pinnedRow: 11, // pin top row
-  color: [0.3, 0.5, 0.8],
-});
-gpuSprings.gravity = [0, -0.4];
-gpuSprings.damping = 0.03;
-gpuSprings.drawLines = true;
-gpuSprings.drawNodes = false;
+// No default mesh - create on demand via presets/LLM
 
 // --- Text overlay & word particles ---
 const particles = new TextParticleSystem();
@@ -724,24 +711,32 @@ function frame(now: number) {
   gpuParticles.update(dt, clock.elapsed);
   gpuSprings.update(dt, clock.elapsed);
 
-  // Poke the jello mesh on tap
+  // Tap gesture: firework burst + optional spring poke
   if (input.tapped) {
-    gpuSprings.poke(input.tapX, input.tapY, 0.3, 0.5);
     // Firework burst at tap location
     gpuParticles.firework(input.tapX, input.tapY, 0.5);
+    
+    // Only poke springs if there's an active mesh
+    if (gpuSprings.nodeCount > 0) {
+      gpuSprings.poke(input.tapX, input.tapY, 0.3, 0.5);
+    }
   }
 
-  // Feed mouse drag into spring system
-  if (input.pressed) {
-    gpuSprings.mouseX = input.dragX;
-    gpuSprings.mouseY = input.dragY;
-    gpuSprings.mouseForce = input.dragEnergy * 5;
+  // Feed mouse drag into spring system (only if active mesh)
+  if (gpuSprings.nodeCount > 0) {
+    if (input.pressed) {
+      gpuSprings.mouseX = input.dragX;
+      gpuSprings.mouseY = input.dragY;
+      gpuSprings.mouseForce = input.dragEnergy * 5;
+    } else {
+      gpuSprings.mouseForce = 0;
+    }
+    // Audio-reactive jiggle on the spring mesh
+    gpuSprings.jiggle = audio.bass * 0.5;
   } else {
     gpuSprings.mouseForce = 0;
+    gpuSprings.jiggle = 0;
   }
-
-  // Audio-reactive jiggle on the spring mesh
-  gpuSprings.jiggle = audio.bass * 0.5;
 
   // Update and render text particles (audio-reactive)
   particles.update(dt, audio.bass, audio.amplitude);
