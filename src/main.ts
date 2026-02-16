@@ -723,6 +723,15 @@ function frame(now: number) {
       moodName: dbgMood.name,
       moodConfidence: dbgConf,
       params: params.snapshot(),
+      directorEnabled: director?.enabled ?? false,
+      directorPending: director?.pending ?? false,
+      directorFailures: director?.failures ?? 0,
+      poetEnabled: poet?.enabled ?? false,
+      inputEnergy: input.dragEnergy,
+      inputHold: input.holdDuration,
+      inputFlurry: input.clickFlurry,
+      inputStillness: input.stillness,
+      inputPressed: input.pressed,
     };
     debug.update(dbgFrame);
   }

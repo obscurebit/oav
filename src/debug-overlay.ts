@@ -19,6 +19,16 @@ export interface DebugFrame {
   moodName: string;
   moodConfidence: number;
   params: Record<string, number>;
+  // Director / Poet / Input status
+  directorEnabled: boolean;
+  directorPending: boolean;
+  directorFailures: number;
+  poetEnabled: boolean;
+  inputEnergy: number;
+  inputHold: number;
+  inputFlurry: number;
+  inputStillness: number;
+  inputPressed: boolean;
 }
 
 interface LogEntry {
@@ -30,10 +40,12 @@ interface LogEntry {
 const MAX_LOG = 80;
 const IMPORTANT_PARAMS = [
   "intensity", "speed", "hue", "pulse",
-  "saturation", "contrast", "warmth", "bloom",
-  "warp", "wobble", "spin", "glitch", "strobe",
-  "aberration", "zoom", "vignette", "symmetry",
-  "cells", "ridge", "grain", "drift_x", "drift_y",
+  "saturation", "contrast", "warmth", "gamma", "invert",
+  "zoom", "rotation", "symmetry", "mirror_x", "mirror_y",
+  "warp", "noise_scale", "octaves", "lacunarity",
+  "grain", "pixelate", "edge", "ridge", "cells",
+  "drift_x", "drift_y", "spin", "wobble", "strobe",
+  "bloom", "vignette", "aberration", "glitch", "feedback",
 ];
 
 export class DebugOverlay {
@@ -45,6 +57,8 @@ export class DebugOverlay {
   // Sections
   private _perfEl: HTMLDivElement;
   private _engineEl: HTMLDivElement;
+  private _llmEl: HTMLDivElement;
+  private _inputEl: HTMLDivElement;
   private _moodEl: HTMLDivElement;
   private _paramsEl: HTMLDivElement;
   private _logEl: HTMLDivElement;
@@ -63,17 +77,20 @@ export class DebugOverlay {
     // Left column: perf + engine + mood + params
     const left = document.createElement("div");
     left.style.cssText = `
-      position: absolute; top: 8px; left: 8px; width: 320px;
+      position: absolute; top: 8px; left: 8px; width: 320px; max-height: calc(100vh - 16px);
       background: rgba(0,0,0,0.75); border: 1px solid rgba(0,255,0,0.3);
-      border-radius: 4px; padding: 8px; overflow: hidden;
+      border-radius: 4px; padding: 8px; overflow-y: auto;
+      pointer-events: auto;
     `;
 
     this._perfEl = this._section("⚡ PERF");
     this._engineEl = this._section("🎬 ENGINE");
+    this._llmEl = this._section("🤖 LLM");
+    this._inputEl = this._section("👆 INPUT");
     this._moodEl = this._section("🎭 MOOD");
     this._paramsEl = this._section("🎛 PARAMS");
 
-    left.append(this._perfEl, this._engineEl, this._moodEl, this._paramsEl);
+    left.append(this._perfEl, this._engineEl, this._llmEl, this._inputEl, this._moodEl, this._paramsEl);
 
     // Right column: log stream
     const right = document.createElement("div");
@@ -141,6 +158,26 @@ export class DebugOverlay {
     this._body(this._engineEl).innerHTML =
       `time: <b>${frame.elapsed.toFixed(1)}s</b>  scene: <b>${frame.scene}</b> (${(frame.sceneProgress * 100).toFixed(0)}%)` +
       `\npreset: ${presetLabel}  audio: ${frame.audioStarted ? "<span style='color:#0f0'>ON</span>" : "<span style='color:#f44'>OFF</span>"}`;
+
+    // LLM status
+    const dirColor = frame.directorEnabled ? (frame.directorPending ? "#ff0" : "#0f0") : "#f44";
+    const dirLabel = frame.directorEnabled ? (frame.directorPending ? "PENDING" : "READY") : `OFF (${frame.directorFailures} fails)`;
+    const poetLabel = frame.poetEnabled ? "<span style='color:#0f0'>ON</span>" : "<span style='color:#666'>OFF</span>";
+    this._body(this._llmEl).innerHTML =
+      `director: <b style="color:${dirColor}">${dirLabel}</b>  poet: ${poetLabel}`;
+
+    // Input gestures
+    const pressLabel = frame.inputPressed
+      ? `<span style="color:#0f0">PRESSED</span> (${frame.inputHold.toFixed(1)}s)`
+      : `<span style="color:#666">released</span>`;
+    const energyBar = this._miniBar(frame.inputEnergy, "intensity");
+    const flurryBar = this._miniBar(frame.inputFlurry, "intensity");
+    const stillLabel = frame.inputStillness > 3
+      ? `<span style="color:#0af">${frame.inputStillness.toFixed(0)}s (calming)</span>`
+      : `${frame.inputStillness.toFixed(1)}s`;
+    this._body(this._inputEl).innerHTML =
+      `${pressLabel}  energy: ${energyBar}  flurry: ${flurryBar}` +
+      `\nstillness: ${stillLabel}`;
 
     // Mood
     const conf = frame.moodConfidence;
@@ -220,12 +257,15 @@ export class DebugOverlay {
     switch (name) {
       case "speed": return 4;
       case "zoom": return 5;
-      case "symmetry": return 8;
+      case "symmetry": return 12;
       case "octaves": return 8;
       case "noise_scale": return 10;
       case "warp": return 3;
       case "bloom": case "vignette": return 2;
       case "contrast": case "saturation": return 2;
+      case "gamma": return 3;
+      case "lacunarity": return 4;
+      case "rotation": return 3.14;
       default: return 1;
     }
   }
@@ -234,8 +274,9 @@ export class DebugOverlay {
     switch (name) {
       case "intensity": return 0.5;
       case "speed": return 1;
-      case "saturation": case "contrast": case "zoom": return 1;
+      case "saturation": case "contrast": case "zoom": case "gamma": return 1;
       case "vignette": return 0.5;
+      case "warp": return 0.5;
       case "noise_scale": return 3;
       case "octaves": return 5;
       case "lacunarity": return 2;
