@@ -264,25 +264,39 @@ export class Director {
     messages.push({ role: "user", content: userMessage });
 
     try {
+      const requestBody = {
+        model: this._config.model,
+        messages,
+        tools: this._config.dualMode ? ENGINE_TOOLS : ALL_TOOLS,
+        tool_choice: this._config.dualMode ? "required" : "auto",
+        temperature: 0.75,
+        top_p: 0.95,
+        max_tokens: this._config.dualMode ? 300 : 500,
+      };
+
+      console.log("[Director] API request:", {
+        url: this._config.apiUrl,
+        model: this._config.model,
+        toolCount: requestBody.tools?.length || 0,
+        messageCount: messages.length,
+      });
+
       const response = await fetch(this._config.apiUrl!, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${this._config.apiKey}`,
         },
-        body: JSON.stringify({
-          model: this._config.model,
-          messages,
-          tools: this._config.dualMode ? ENGINE_TOOLS : ALL_TOOLS,
-          tool_choice: this._config.dualMode ? "required" : "auto",
-          temperature: 0.75,
-          top_p: 0.95,
-          max_tokens: this._config.dualMode ? 300 : 500,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        console.warn("[Director] API error:", response.status);
+        const errorText = await response.text();
+        console.warn("[Director] API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+        });
         this._recordFailure();
         return;
       }
@@ -302,7 +316,13 @@ export class Director {
         this._onResult(result);
       }
     } catch (err) {
-      console.warn("[Director] Request failed:", err);
+      console.warn("[Director] Request failed:", {
+        error: err,
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        apiUrl: this._config.apiUrl,
+        model: this._config.model,
+      });
       this._recordFailure();
     } finally {
       this._pending = false;
