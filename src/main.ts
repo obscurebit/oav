@@ -440,9 +440,11 @@ const wordInput = new WordInput(particles, {
       }, 600 + Math.random() * 400);
 
       const ctx = buildDirectorContext(phrase);
+      debug.log("LLM", `sending to Director (pending=${director.pending}, failures=${director.failures})`);
       director.respond(ctx);
     } else {
-      // No LLM — tell the ambient voice about the user's words so it can weave them into its story
+      // No LLM or Director disabled — ambient voice responds to user
+      debug.log("LLM", "Director unavailable — ambient fallback");
       ambientVoice.respondToUser(phrase);
     }
   },
@@ -593,6 +595,7 @@ window.addEventListener("mousemove", markInteraction, { once: true });
 
 // --- Scene transition tracking ---
 let lastActiveSceneId = "";
+let directorDisabledLogged = false;
 
 // --- Main loop ---
 let lastTime = 0;
@@ -673,7 +676,13 @@ function frame(now: number) {
       director.update(buildDirectorContext(null));
     }
   } else {
+    // Director disabled or absent — ambient voice provides poetry
     ambientVoice.update(clock.elapsed);
+    // Log once when Director disables mid-session
+    if (director && !director.enabled && !directorDisabledLogged) {
+      directorDisabledLogged = true;
+      debug.log("ERROR", `Director disabled (${director.failures} failures) — ambient fallback`);
+    }
   }
 
   // Show interaction hint if no activity after 15s

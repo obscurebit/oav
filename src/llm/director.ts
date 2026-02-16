@@ -166,6 +166,8 @@ export class Director {
   private _consecutiveFailures = 0;
   private _onResult: ((result: DirectorResult) => void) | null = null;
   private _storyHistory: StoryEntry[] = [];
+  /** Queued user context to call after current pending request completes */
+  private _queuedUserCtx: DirectorContext | null = null;
 
   constructor(config: DirectorConfig) {
     this._config = {
@@ -179,9 +181,9 @@ export class Director {
     this._scheduleNextAmbient();
   }
 
-  get enabled(): boolean {
-    return this._enabled;
-  }
+  get enabled(): boolean { return this._enabled; }
+  get pending(): boolean { return this._pending; }
+  get failures(): number { return this._consecutiveFailures; }
 
   /** Set callback for when the LLM responds with tool calls. */
   onResult(cb: (result: DirectorResult) => void): void {
@@ -209,8 +211,14 @@ export class Director {
 
   /** Trigger an immediate call (e.g., user typed something). */
   respond(ctx: DirectorContext): void {
-    if (!this._enabled || this._pending) return;
+    if (!this._enabled) return;
     this._lastUserInteraction = ctx.elapsed;
+    if (this._pending) {
+      // Queue the user context — it will fire when the current call completes
+      this._queuedUserCtx = ctx;
+      console.log("[Director] Queued user input (pending call in-flight)");
+      return;
+    }
     this._call(ctx);
     // Push back the next ambient call
     this._scheduleNextAmbient();
@@ -298,6 +306,12 @@ export class Director {
       this._recordFailure();
     } finally {
       this._pending = false;
+      // If user input was queued while we were busy, fire it now
+      if (this._queuedUserCtx) {
+        const queued = this._queuedUserCtx;
+        this._queuedUserCtx = null;
+        this.respond(queued);
+      }
     }
   }
 
