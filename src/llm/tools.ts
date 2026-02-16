@@ -381,16 +381,20 @@ Available presets:
 - "minimal": low intensity, no warp, no effects, clean
 - "cosmic": purple hue, bloom, high octaves, zoom out
 - "industrial": desaturated, ridge, grain, high contrast, edge
-- "dream": low speed, wobble, bloom, soft, warm
-- "nightmare": invert, glitch, high speed, aberration, red
-- "crystal": cells, high contrast, symmetry, blue
-- "organic": high warp, warm, low edge, bloom
-- "digital": pixelate, edge, glitch, cyan, high speed
-- "zen": low speed, low intensity, no effects, warm
-- "storm": high speed, high warp, strobe, aberration
-- "aurora": green/cyan hue, bloom, wobble, high saturation
-- "lava": red/orange, high warp, ridge, bloom, high intensity
-- "fireworks": explosive bloom, strobe, vivid color, zoomed out, fast, warm bursts
+- "dream": soft bloom, gentle wobble, warm tones
+- "nightmare": inverted, glitch, high speed, aberration
+- "crystal": high contrast, cells, symmetry, cool hues
+- "organic": high warp, warm tones, soft bloom
+- "digital": pixelate, edge, glitch, high speed
+- "zen": very slow, minimal effects, calm
+- "storm": high speed, warp, strobe, aberration
+- "aurora": green/blue hue, bloom, wobble
+- "lava": red/orange hue, high warp, ridge
+- "fireworks": warm burst colors, high contrast, dark sky + GPU firework bursts
+- "jello": soft, wobbling spring mesh with pink/purple hues + interactive jello physics
+- "sparkle_field": cool blue/purple tones with ambient sparkle particles across screen
+- "electric_storm": high energy, strobing, with electric particle bursts + jiggling spring mesh
+- "void": extreme zoom, spin, warp, darkobe, vivid color, zoomed out, fast, warm bursts
 - "void": near-zero intensity, invert, slow, dark
 - "reset": return all params to defaults`,
     parameters: {
@@ -401,7 +405,8 @@ Available presets:
           enum: [
             "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
             "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
-            "crystal", "organic", "digital", "zen", "storm", "aurora", "lava", "fireworks", "void", "reset",
+            "crystal", "organic", "digital", "zen", "storm", "aurora", "lava", 
+            "fireworks", "jello", "sparkle_field", "electric_storm", "void", "reset",
           ],
           description: "The preset to apply.",
         },

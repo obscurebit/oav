@@ -39,6 +39,9 @@ export const PRESETS: Record<string, Record<string, number>> = {
   aurora:      { hue: 0.38, bloom: 1.0, wobble: 0.4, saturation: 1.6, warmth: -0.3, speed: 0.6, warp: 0.8 },
   lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8 },
   fireworks:   { bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, hue: 0.05, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3 },
+  jello:       { bloom: 0.3, saturation: 0.8, speed: 0.6, zoom: 0.8, intensity: 0.5, warmth: 0.2, contrast: 1.3, vignette: 0.8, hue: 0.4, warp: 0.1, spin: 0, aberration: 0, noise_scale: 2, ridge: 0 },
+  sparkle_field: { bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, hue: 0.6, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0 },
+  electric_storm: { bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, hue: 0.6, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3 },
   void:        { zoom: 4.5, spin: 1.5, intensity: 0.05, warp: 2.5, saturation: 0, contrast: 2.5, vignette: 2.0, aberration: 0.7, speed: 2.0 },
   reset:       { intensity: 0.5, speed: 1, hue: 0, saturation: 1, contrast: 1, warmth: 0, gamma: 1, invert: 0,
                  zoom: 1, rotation: 0, symmetry: 0, mirror_x: 0, mirror_y: 0, warp: 0.5, noise_scale: 3,
@@ -234,10 +237,12 @@ export class ToolBridge {
     const intensity = Math.max(0.1, Math.min(2.0, Number(args.intensity ?? 1.0)));
 
     // Access GPU particles through global window (hacky but works for now)
-    const oav = (window as any).__OAV__;
-    if (oav?.gpuParticles) {
-      oav.gpuParticles.firework(x, y, intensity);
-      return `firework burst at (${x.toFixed(2)}, ${y.toFixed(2)}) intensity=${intensity.toFixed(1)}`;
+    if (typeof window !== 'undefined') {
+      const oav = (window as any).__OAV__;
+      if (oav?.gpuParticles) {
+        oav.gpuParticles.firework(x, y, intensity);
+        return `firework burst at (${x.toFixed(2)}, ${y.toFixed(2)}) intensity=${intensity.toFixed(1)}`;
+      }
     }
     return "GPU particles not available";
   }
@@ -247,10 +252,12 @@ export class ToolBridge {
     const y = Number(args.y ?? 0);
     const count = Math.max(5, Math.min(50, Number(args.count ?? 10)));
 
-    const oav = (window as any).__OAV__;
-    if (oav?.gpuParticles) {
-      oav.gpuParticles.sparkle(x, y, count);
-      return `sparkle burst at (${x.toFixed(2)}, ${y.toFixed(2)}) count=${count}`;
+    if (typeof window !== 'undefined') {
+      const oav = (window as any).__OAV__;
+      if (oav?.gpuParticles) {
+        oav.gpuParticles.sparkle(x, y, count);
+        return `sparkle burst at (${x.toFixed(2)}, ${y.toFixed(2)}) count=${count}`;
+      }
     }
     return "GPU particles not available";
   }
@@ -261,10 +268,12 @@ export class ToolBridge {
     const radius = Math.max(0.1, Math.min(1.0, Number(args.radius ?? 0.3)));
     const force = Math.max(0.1, Math.min(2.0, Number(args.force ?? 0.5)));
 
-    const oav = (window as any).__OAV__;
-    if (oav?.gpuSprings) {
-      oav.gpuSprings.poke(x, y, radius, force);
-      return `poke springs at (${x.toFixed(2)}, ${y.toFixed(2)}) radius=${radius.toFixed(2)} force=${force.toFixed(1)}`;
+    if (typeof window !== 'undefined') {
+      const oav = (window as any).__OAV__;
+      if (oav?.gpuSprings) {
+        oav.gpuSprings.poke(x, y, radius, force);
+        return `poke springs at (${x.toFixed(2)}, ${y.toFixed(2)}) radius=${radius.toFixed(2)} force=${force.toFixed(1)}`;
+      }
     }
     return "GPU springs not available";
   }
@@ -284,14 +293,90 @@ export class ToolBridge {
 
     const duration = preset === "reset" ? 2.0 : 1.5;
 
-    // Special case: fireworks preset triggers GPU fireworks
-    if (preset === "fireworks") {
+    // Special case: presets with GPU effects
+    if (typeof window !== 'undefined') {
       const oav = (window as any).__OAV__;
-      if (oav?.gpuParticles) {
-        // Trigger multiple firework bursts across the screen
-        oav.gpuParticles.firework(-0.5, 0.2, 0.8);
-        setTimeout(() => oav.gpuParticles.firework(0.3, -0.1, 1.0), 200);
-        setTimeout(() => oav.gpuParticles.firework(0.0, 0.4, 0.6), 400);
+      if (preset === "fireworks" && oav?.gpuParticles) {
+      // Multiple firework bursts across the screen
+      oav.gpuParticles.firework(-0.5, 0.2, 0.8);
+      setTimeout(() => oav.gpuParticles.firework(0.3, -0.1, 1.0), 200);
+      setTimeout(() => oav.gpuParticles.firework(0.0, 0.4, 0.6), 400);
+    } else if (preset === "jello" && oav?.gpuSprings) {
+      // Reset and configure jello mesh
+      oav.gpuSprings.createGrid({
+        cols: 20, rows: 15,
+        originX: -0.6, originY: -0.4,
+        width: 1.2, height: 0.8,
+        stiffness: 60, damping: 1.5,
+        mass: 0.015,
+        pinnedRow: 14, // pin top row
+        color: [0.8, 0.4, 0.6],
+      });
+      oav.gpuSprings.gravity = [0, -0.3];
+      oav.gpuSprings.damping = 0.02;
+      oav.gpuSprings.drawLines = true;
+      oav.gpuSprings.drawNodes = false;
+    } else if (preset === "sparkle_field" && oav?.gpuParticles) {
+      // Create ambient sparkle field
+      const createSparkles = () => {
+        for (let i = 0; i < 5; i++) {
+          const x = (Math.random() - 0.5) * 1.8;
+          const y = (Math.random() - 0.5) * 1.8;
+          oav.gpuParticles.sparkle(x, y, Math.floor(Math.random() * 15 + 5));
+        }
+      };
+      createSparkles();
+      // Continue sparkling every 2 seconds
+      const interval = setInterval(createSparkles, 2000);
+      // Clear interval after 30 seconds
+      setTimeout(() => clearInterval(interval), 30000);
+    } else if (preset === "electric_storm" && oav?.gpuParticles && oav?.gpuSprings) {
+      // Configure springs for storm effect
+      oav.gpuSprings.createGrid({
+        cols: 12, rows: 10,
+        originX: -0.4, originY: -0.3,
+        width: 0.8, height: 0.6,
+        stiffness: 120, damping: 3.0,
+        mass: 0.01,
+        pinnedRow: -1, // no pins - free floating
+        color: [0.3, 0.6, 1.0],
+      });
+      oav.gpuSprings.gravity = [0, 0];
+      oav.gpuSprings.damping = 0.05;
+      oav.gpuSprings.jiggle = 0.8;
+      
+      // Electric particle bursts
+      const electricBurst = () => {
+        const x = (Math.random() - 0.5) * 1.5;
+        const y = (Math.random() - 0.5) * 1.5;
+        oav.gpuParticles.firework(x, y, 0.3);
+        // Poke springs at same location
+        oav.gpuSprings.poke(x, y, 0.4, 0.8);
+      };
+      electricBurst();
+      // Continue electric bursts
+      const interval = setInterval(electricBurst, 1500);
+      setTimeout(() => clearInterval(interval), 20000);
+    } else if (preset === "cosmic" && oav?.gpuParticles) {
+      // Ambient cosmic sparkles
+      const cosmicSparkle = () => {
+        const x = (Math.random() - 0.5) * 1.6;
+        const y = (Math.random() - 0.5) * 1.6;
+        oav.gpuParticles.sparkle(x, y, Math.floor(Math.random() * 8 + 3));
+      };
+      // Gentle sparkles every 3 seconds
+      const interval = setInterval(cosmicSparkle, 3000);
+      setTimeout(() => clearInterval(interval), 45000);
+    } else if (preset === "storm" && oav?.gpuParticles) {
+      // Occasional lightning bursts
+      const lightning = () => {
+        const x = (Math.random() - 0.5) * 1.8;
+        const y = 0.8; // top of screen
+        oav.gpuParticles.firework(x, y, 0.4);
+      };
+      // Lightning every 4 seconds
+      const interval = setInterval(lightning, 4000);
+      setTimeout(() => clearInterval(interval), 30000);
       }
     }
     let count = 0;
