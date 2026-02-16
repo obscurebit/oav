@@ -782,6 +782,30 @@ function frame(now: number) {
       inputFlurry: input.clickFlurry,
       inputStillness: input.stillness,
       inputPressed: input.pressed,
+      // Audio analysis
+      amplitude: audio.amplitude,
+      brightness: audio.brightness,
+      bass: audio.bass,
+      mid: audio.mid,
+      high: audio.high,
+      beatHit: audio.beatHit,
+      rhythmicIntensity: audio.rhythmicIntensity,
+      spectralCentroid: audio.spectralCentroid,
+      // Audio parameters (if enhanced audio is available)
+      subLevel: (audio as any).getParams?.()?.subLevel ?? 0,
+      harmonicLevel: (audio as any).getParams?.()?.harmonicLevel ?? 0,
+      noiseLevel: (audio as any).getParams?.()?.noiseLevel ?? 0,
+      padLevel: (audio as any).getParams?.()?.padLevel ?? 0,
+      filterFreq: (audio as any).getParams?.()?.filterFreq ?? 800,
+      filterRes: (audio as any).getParams?.()?.filterRes ?? 1.5,
+      lfoRate: (audio as any).getParams?.()?.lfoRate ?? 0.5,
+      lfoDepth: (audio as any).getParams?.()?.lfoDepth ?? 0.3,
+      reverbWet: (audio as any).getParams?.()?.reverbWet ?? 0.3,
+      delayTime: (audio as any).getParams?.()?.delayTime ?? 0.3,
+      delayFeedback: (audio as any).getParams?.()?.delayFeedback ?? 0.4,
+      distortion: (audio as any).getParams?.()?.distortion ?? 0.1,
+      masterLevel: (audio as any).getParams?.()?.masterLevel ?? 0.7,
+      tempo: (audio as any).getParams?.()?.tempo ?? 120,
     };
     debug.update(dbgFrame);
   }

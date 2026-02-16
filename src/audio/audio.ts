@@ -24,8 +24,21 @@ export class Audio {
   /** Simple beat detection flag — true on frames with a bass transient. */
   beatHit = false;
 
+  /** Mid-frequency energy [0, 1] — useful for harmonic content. */
+  mid = 0;
+
+  /** High-frequency energy [0, 1] — useful for brightness/treble. */
+  high = 0;
+
+  /** Rhythmic intensity [0, 1] — smoothed beat detection. */
+  rhythmicIntensity = 0;
+
+  /** Spectral centroid [0, 1] — measure of brightness. */
+  spectralCentroid = 0;
+
   private _prevBass = 0;
   private _beatThreshold = 0.3;
+  private _rhythmicDecay = 0.95;
 
   /** Initialize the AudioContext (must be called from a user gesture). */
   init(): void {
@@ -413,10 +426,34 @@ export class Audio {
       ? (weightedSum / totalEnergy) / this._freqData.length
       : 0;
 
+    // Mid and high frequency energy
+    const midEnd = Math.floor(this._freqData.length * 0.5);
+    let midSum = 0;
+    let highSum = 0;
+    for (let i = bassEnd; i < this._freqData.length; i++) {
+      if (i < midEnd) {
+        midSum += this._freqData[i];
+      } else {
+        highSum += this._freqData[i];
+      }
+    }
+    this.mid = midSum / ((midEnd - bassEnd) * 255);
+    this.high = highSum / ((this._freqData.length - midEnd) * 255);
+
+    // Spectral centroid (brightness) - already calculated as this.brightness
+    this.spectralCentroid = this.brightness;
+
     // Simple beat detection: bass transient
     const bassDelta = this.bass - this._prevBass;
     this.beatHit = bassDelta > this._beatThreshold;
     this._prevBass = this.bass;
+
+    // Rhythmic intensity - smoothed beat detection
+    if (this.beatHit) {
+      this.rhythmicIntensity = 1.0;
+    } else {
+      this.rhythmicIntensity *= this._rhythmicDecay;
+    }
   }
 
   /**
