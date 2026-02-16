@@ -153,6 +153,8 @@ export class ToolBridge {
         return this._spawnParticles(args);
       case "firework":
         return this._firework(args);
+      case "enhanced_firework":
+        return this._enhancedFirework(args);
       case "sparkle":
         return this._sparkle(args);
       case "poke_springs":
@@ -304,6 +306,28 @@ export class ToolBridge {
     return "GPU particles not available";
   }
 
+  private _enhancedFirework(args: Record<string, unknown>): string {
+    const x = Number(args.x ?? 0);
+    const y = Number(args.y ?? 0);
+    const type = String(args.type ?? "chrysanthemum");
+    const color = String(args.color ?? "gold");
+    const intensity = Math.max(0.1, Math.min(2.0, Number(args.intensity ?? 1.0)));
+
+    if (typeof window !== 'undefined') {
+      const oav = (window as any).__OAV__;
+      if (oav?.gpuParticles) {
+        oav.gpuParticles.enhancedFirework({
+          x, y,
+          type,
+          color,
+          intensity
+        });
+        return `enhanced ${type} firework at (${x.toFixed(2)}, ${y.toFixed(2)}) color=${color} intensity=${intensity.toFixed(1)}`;
+      }
+    }
+    return "GPU particles not available";
+  }
+
   private _sparkle(args: Record<string, unknown>): string {
     const x = Number(args.x ?? 0);
     const y = Number(args.y ?? 0);
@@ -354,10 +378,25 @@ export class ToolBridge {
     if (typeof window !== 'undefined') {
       const oav = (window as any).__OAV__;
       if (preset === "fireworks" && oav?.gpuParticles) {
-      // Multiple firework bursts across the screen
-      oav.gpuParticles.firework(-0.5, 0.2, 0.8);
-      setTimeout(() => oav.gpuParticles.firework(0.3, -0.1, 1.0), 200);
-      setTimeout(() => oav.gpuParticles.firework(0.0, 0.4, 0.6), 400);
+      // Enhanced fireworks with different types and colors
+      oav.gpuParticles.enhancedFirework({
+        x: -0.5, y: 0.2,
+        intensity: 0.8,
+        color: "gold",
+        type: "chrysanthemum"
+      });
+      setTimeout(() => oav.gpuParticles.enhancedFirework({
+        x: 0.3, y: -0.1,
+        intensity: 1.0,
+        color: "red",
+        type: "willow"
+      }), 400);
+      setTimeout(() => oav.gpuParticles.enhancedFirework({
+        x: 0.0, y: 0.4,
+        intensity: 0.6,
+        color: "blue",
+        type: "palm"
+      }), 800);
     } else if (preset === "jello" && oav?.gpuSprings) {
       // Enhanced jello mesh with paper-inspired parameters
       oav.gpuSprings.createGrid({

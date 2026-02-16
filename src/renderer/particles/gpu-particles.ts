@@ -12,6 +12,9 @@ import { compileShader } from "../gl";
 import updateVertSrc from "./particle-update.vert";
 import renderVertSrc from "./particle-render.vert";
 import renderFragSrc from "./particle-render.frag";
+import enhancedUpdateVertSrc from "./enhanced-particle-update.vert";
+import enhancedRenderFragSrc from "./enhanced-particle-render.frag";
+import { EnhancedFireworks, FireworkConfig } from "./enhanced-fireworks";
 
 const FLOATS_PER_PARTICLE = 13;
 const MAX_PARTICLES = 16384;
@@ -80,10 +83,15 @@ export class GPUParticleSystem {
   gravity: [number, number, number] = [0, -0.8, 0];
   drag = 0.02;
   turbulence = 0.1;
+  wind: [number, number, number] = [0, 0, 0];
+
+  // Enhanced fireworks system
+  private _enhancedFireworks: EnhancedFireworks;
 
   constructor(gl: WebGL2RenderingContext) {
     this._gl = gl;
     this._cpuData = new Float32Array(MAX_PARTICLES * FLOATS_PER_PARTICLE);
+    this._enhancedFireworks = new EnhancedFireworks(this);
 
     // Initialize all particles as dead (age >= life)
     for (let i = 0; i < MAX_PARTICLES; i++) {
@@ -247,33 +255,19 @@ export class GPUParticleSystem {
 
   // --- Convenience emitters ---
 
-  /** Firework burst: radial explosion with warm colors */
+  /** Enhanced firework with professional effects */
+  enhancedFirework(config: FireworkConfig): void {
+    this._enhancedFireworks.createFirework(config);
+  }
+
+  /** Legacy firework burst: radial explosion with warm colors */
   firework(x: number, y: number, intensity = 1.0): void {
-    // Main burst
-    this.emit({
+    // Use enhanced chrysanthemum by default
+    this.enhancedFirework({
       x, y,
-      count: Math.floor(200 * intensity),
-      speed: 0.8 * intensity,
-      spread: Math.PI * 2,
-      color: [1.0, 0.7, 0.3],
-      colorVariance: 0.4,
-      life: 1.5,
-      lifeVariance: 0.5,
-      size: 0.015,
-      sizeVariance: 0.01,
-    });
-    // Core flash (brighter, shorter-lived)
-    this.emit({
-      x, y,
-      count: Math.floor(50 * intensity),
-      speed: 0.3 * intensity,
-      spread: Math.PI * 2,
-      color: [1.0, 1.0, 0.9],
-      colorVariance: 0.1,
-      life: 0.4,
-      lifeVariance: 0.1,
-      size: 0.025,
-      sizeVariance: 0.005,
+      intensity,
+      color: "gold",
+      type: "chrysanthemum"
     });
   }
 

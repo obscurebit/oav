@@ -490,6 +490,44 @@ const pokeSpringsTool: ToolDefinition = {
   },
 };
 
+const enhancedFireworkTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "enhanced_firework",
+    description: "Create a professional firework display with multiple stages, trails, and sparkles. Choose from chrysanthemum (classic burst), willow (long falling trails), palm (vertical burst), crossette (multiple explosions), or salute (bright flash).",
+    parameters: {
+      type: "object",
+      properties: {
+        x: {
+          type: "number",
+          description: "X position in normalized coordinates [-1, 1].",
+        },
+        y: {
+          type: "number", 
+          description: "Y position in normalized coordinates [-1, 1].",
+        },
+        type: {
+          type: "string",
+          description: "Firework type: chrysanthemum, willow, palm, crossette, salute",
+          enum: ["chrysanthemum", "willow", "palm", "crossette", "salute"],
+        },
+        color: {
+          type: "string",
+          description: "Firework color: red, blue, green, gold, purple, white, rainbow",
+          enum: ["red", "blue", "green", "gold", "purple", "white", "rainbow"],
+        },
+        intensity: {
+          type: "number",
+          description: "Firework intensity [0.1-2.0]. Default 1.0.",
+          minimum: 0.1,
+          maximum: 2.0,
+        },
+      },
+      required: ["x", "y"],
+    },
+  },
+};
+
 // --- Level 3+: Preset combos (high-level named effects) ---
 
 const applyPresetTool: ToolDefinition = {
@@ -585,6 +623,7 @@ export const ALL_TOOLS: ToolDefinition[] = [
   fireworkTool,
   sparkleTool,
   pokeSpringsTool,
+  enhancedFireworkTool,
   // Preset combos
   applyPresetTool,
 ];
@@ -607,6 +646,7 @@ export const ENGINE_TOOLS: ToolDefinition[] = [
   fireworkTool,
   sparkleTool,
   pokeSpringsTool,
+  enhancedFireworkTool,
   // Preset combos
   applyPresetTool,
 ];
