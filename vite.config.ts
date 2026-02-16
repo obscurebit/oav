@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import glsl from "vite-plugin-glsl";
 import { resolve, dirname } from "path";
@@ -10,6 +11,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
+    },
+  },
+  server: {
+    proxy: {
+      "/api/llm": {
+        target: "https://integrate.api.nvidia.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/llm/, "/v1"),
+      },
     },
   },
   test: {

@@ -9,6 +9,8 @@ export interface WordInputOptions {
   pauseMs?: number;
   /** Callback when a word/phrase is ready to send to the LLM. */
   onPhrase?: (phrase: string) => void;
+  /** Callback on every keystroke — for immediate visual/shader feedback. */
+  onKeystroke?: (char: string, bufferLength: number) => void;
 }
 
 export class WordInput {
@@ -16,14 +18,16 @@ export class WordInput {
   private _particles: TextParticleSystem;
   private _pauseMs: number;
   private _onPhrase: ((phrase: string) => void) | null;
+  private _onKeystroke: ((char: string, bufferLength: number) => void) | null;
   private _timer: ReturnType<typeof setTimeout> | null = null;
   private _canvasW = 1;
   private _canvasH = 1;
 
   constructor(particles: TextParticleSystem, options: WordInputOptions = {}) {
     this._particles = particles;
-    this._pauseMs = options.pauseMs ?? 1500;
+    this._pauseMs = options.pauseMs ?? 800;
     this._onPhrase = options.onPhrase ?? null;
+    this._onKeystroke = options.onKeystroke ?? null;
     this._bindKeyboard();
   }
 
@@ -43,6 +47,13 @@ export class WordInput {
         return;
       }
 
+      if (e.key === "Enter") {
+        // Enter sends immediately
+        if (this._timer) clearTimeout(this._timer);
+        this._flush();
+        return;
+      }
+
       if (e.key === "Escape") {
         this._buffer.length = 0;
         if (this._timer) clearTimeout(this._timer);
@@ -54,10 +65,15 @@ export class WordInput {
 
       this._buffer.push(e.key);
 
-      // Scatter the character as a particle near the center
-      const cx = this._canvasW * 0.5;
-      const cy = this._canvasH * 0.55;
-      this._particles.addUserChar(e.key, cx, cy);
+      // Newest char spawns at a fixed right-side point; older chars are already drifting left
+      const baseX = this._canvasW * 0.55;
+      const baseY = this._canvasH * 0.48;
+      this._particles.addUserChar(e.key, baseX, baseY);
+
+      // Immediate feedback callback
+      if (this._onKeystroke) {
+        this._onKeystroke(e.key, this._buffer.length);
+      }
 
       this._resetTimer();
     });

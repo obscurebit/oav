@@ -14,45 +14,67 @@ uniform float uHue;
 uniform float uAmplitude;
 uniform float uBass;
 uniform float uBrightness;
+uniform float uPulse;
 
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
+#include "noise.glsl"
+#include "post.glsl"
 
-// Outro: dissolving particles fading to black
+// Outro: dissolution — the world unraveling into ash and memory
 void main() {
+  vec2 uv = vUv;
   vec2 p = (gl_FragCoord.xy - uResolution * 0.5) / min(uResolution.x, uResolution.y);
-  float t = uTime * uSpeed * 0.3;
+  float t = uTime * uSpeed * 0.25;
 
-  // Noise-like pattern from layered sines
-  float n = sin(p.x * 12.0 + t) * sin(p.y * 15.0 - t * 0.7)
-          + sin(p.x * 7.0 - t * 1.3) * sin(p.y * 9.0 + t * 0.5)
-          + sin((p.x + p.y) * 20.0 + t * 0.4) * 0.5;
-  n = n / 2.5 * 0.5 + 0.5;
-
-  // Particles dissolve as progress increases
-  float dissolve = 1.0 - uProgress;
-  float threshold = dissolve * 1.2;
-  float particle = smoothstep(threshold - 0.1, threshold, n);
-
-  // Gentle drift
-  particle *= 1.0 + uAmplitude * 0.3;
-
-  // Muted, cool color
-  float hue = uHue + 0.55 + n * 0.1 + t * 0.01;
-  float sat = 0.2 + uBrightness * 0.2;
-  vec3 col = hsv2rgb(vec3(hue, sat, particle * uIntensity * dissolve));
-
-  // Soft vignette
+  p = applyTransforms(p, t);
   float d = length(p);
-  float vig = 1.0 - d * d * 0.4;
-  col *= vig;
+
+  // Noise field that slowly tears apart
+  float ns = uNoiseScale;
+  int oct = int(uOctaves);
+  float n1 = fbm(p * ns * 1.33 + t * 0.2, oct);
+  float n2 = fbm(p * ns * 2.0 - t * 0.15 + vec2(3.1, 7.4), max(oct - 1, 2));
+  float n3 = snoise(p * ns * 2.67 + t * 0.3);
+
+  // Dissolve threshold rises with progress — particles vanish
+  float dissolve = 1.0 - uProgress;
+  float threshold = dissolve * 1.3;
+  float particle = smoothstep(threshold - 0.15, threshold + 0.05, n1 * 0.5 + 0.5);
+
+  // Secondary structure — embers
+  float embers = smoothstep(0.3, 0.35, n3 * 0.5 + 0.5) * dissolve;
+  embers *= exp(-d * 2.0);
+
+  // Muted, cool palette — ash and deep blue
+  vec3 col1 = palette(n1 * 0.3 + uHue + 0.55,
+    vec3(0.5, 0.5, 0.5),
+    vec3(0.3, 0.3, 0.3),
+    vec3(1.0, 1.0, 1.0),
+    vec3(0.6, 0.7, 0.8)
+  );
+
+  // Warm ember color
+  vec3 col2 = palette(n2 * 0.4 + uHue + 0.1,
+    vec3(0.5, 0.3, 0.2),
+    vec3(0.3, 0.2, 0.1),
+    vec3(1.0, 0.5, 0.3),
+    vec3(0.0, 0.05, 0.0)
+  );
+
+  vec3 col = col1 * particle + col2 * embers * 0.5;
+  col *= uIntensity * dissolve;
+
+  // Amplitude adds faint warmth
+  col += vec3(0.15, 0.05, 0.0) * uAmplitude * dissolve * 0.3;
+
+  // Click pulse — faint ghostly ring
+  float pulseRing = abs(d - (1.0 - uPulse) * 1.5);
+  float pulseGlow = smoothstep(0.1, 0.0, pulseRing) * uPulse * 0.3;
+  col += vec3(0.3, 0.3, 0.5) * pulseGlow;
 
   // Fade to black at end
-  float fadeOut = smoothstep(1.0, 0.7, uProgress);
-  col *= fadeOut;
+  col *= smoothstep(1.0, 0.65, uProgress);
+
+  col = applyPost(col, uv, p, t);
 
   fragColor = vec4(col, 1.0);
 }

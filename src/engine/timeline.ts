@@ -109,6 +109,12 @@ export class Timeline {
     return { current, previous, blend };
   }
 
+  /** Remove entries that ended before the given time (keeps memory bounded). */
+  prune(beforeTime: number): void {
+    // Keep at least the entry before current time (needed for transitions)
+    this._entries = this._entries.filter((e) => e.endTime >= beforeTime - 10);
+  }
+
   /** Get all entries (read-only copy). */
   get entries(): readonly TimelineEntry[] {
     return [...this._entries];

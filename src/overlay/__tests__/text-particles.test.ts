@@ -38,31 +38,31 @@ describe("TextParticleSystem", () => {
     ps.update(0.5);
     const p = ps.particles[0];
     expect(p.age).toBeCloseTo(0.5);
-    // fadeIn is 1.5s, so at 0.5s opacity should be ~0.33
-    expect(p.opacity).toBeCloseTo(0.5 / 1.5, 1);
+    // fadeIn is 2.5s, so at 0.5s opacity should be ~0.2
+    expect(p.opacity).toBeCloseTo(0.5 / 2.5, 1);
   });
 
   it("particles reach full opacity during hold phase", () => {
     const ps = new TextParticleSystem();
     ps.addVoice("test", 1000, 800);
-    // Advance past fadeIn (1.5s) into hold
-    ps.update(2.0);
+    // Advance past fadeIn (2.5s) into hold
+    ps.update(3.0);
     expect(ps.particles[0].opacity).toBeCloseTo(1.0);
   });
 
   it("particles fade out and are removed after total lifetime", () => {
     const ps = new TextParticleSystem();
     ps.addVoice("test", 1000, 800);
-    // Total life = fadeIn(1.5) + hold(3.0) + fadeOut(2.5) = 7.0
-    ps.update(8.0);
+    // Total life = fadeIn(2.5) + hold(6.0) + fadeOut(4.0) = 12.5
+    ps.update(13.0);
     expect(ps.count).toBe(0);
   });
 
   it("user particles have shorter lifetime", () => {
     const ps = new TextParticleSystem();
     ps.addUserChar("x", 500, 400);
-    // Total life = fadeIn(0.15) + hold(0.8) + fadeOut(1.2) = 2.15
-    ps.update(3.0);
+    // Total life = fadeIn(0.08) + hold(2.0) + fadeOut(2.5) = 4.58
+    ps.update(5.0);
     expect(ps.count).toBe(0);
   });
 

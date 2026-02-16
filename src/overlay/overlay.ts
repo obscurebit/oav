@@ -3,6 +3,7 @@
  * then uploads it as a WebGL texture for compositing.
  */
 import type { TextParticle } from "./text-particles";
+import { SCENE_THEMES } from "./text-particles";
 
 export class TextOverlay {
   private _canvas: HTMLCanvasElement;
@@ -59,43 +60,70 @@ export class TextOverlay {
       ctx.globalAlpha = p.opacity;
 
       // Style based on particle kind
-      if (p.kind === "whisper") {
+      if (p.kind === "title" && p.sceneId) {
+        const theme = SCENE_THEMES[p.sceneId];
+        if (theme) {
+          ctx.font = theme.font.replace("{{size}}", String(p.fontSize));
+          ctx.fillStyle = theme.fillStyle;
+          ctx.shadowColor = theme.shadowColor;
+          ctx.shadowBlur = theme.shadowBlur;
+          if (theme.strokeStyle) {
+            ctx.strokeStyle = theme.strokeStyle;
+            ctx.lineWidth = theme.strokeWidth ?? 1;
+          }
+        }
+      } else if (p.kind === "whisper") {
         ctx.font = `300 ${p.fontSize}px "Courier New", monospace`;
-        ctx.fillStyle = "rgba(180, 180, 200, 0.35)";
-        ctx.shadowColor = "rgba(150, 150, 180, 0.15)";
-        ctx.shadowBlur = 8;
+        ctx.fillStyle = "rgba(200, 200, 230, 0.5)";
+        ctx.shadowColor = "rgba(150, 150, 200, 0.4)";
+        ctx.shadowBlur = 20;
       } else if (p.kind === "name") {
         ctx.font = `100 ${p.fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
         ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-        ctx.shadowColor = "rgba(255, 255, 255, 0.6)";
-        ctx.shadowBlur = 35;
+        ctx.shadowColor = "rgba(200, 220, 255, 0.9)";
+        ctx.shadowBlur = 60;
         ctx.letterSpacing = "4px";
       } else if (p.kind === "transform") {
         ctx.font = `italic 300 ${p.fontSize}px Georgia, "Times New Roman", serif`;
-        ctx.fillStyle = "rgba(230, 200, 255, 0.9)";
-        ctx.shadowColor = "rgba(200, 150, 255, 0.5)";
-        ctx.shadowBlur = 28;
+        ctx.fillStyle = "rgba(230, 200, 255, 0.95)";
+        ctx.shadowColor = "rgba(180, 130, 255, 0.8)";
+        ctx.shadowBlur = 50;
       } else if (p.kind === "voice") {
         ctx.font = `300 ${p.fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
-        ctx.shadowBlur = 20;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.shadowColor = "rgba(200, 220, 255, 0.8)";
+        ctx.shadowBlur = 45;
       } else if (p.kind === "echo") {
         ctx.font = `300 italic ${p.fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-        ctx.fillStyle = "rgba(200, 220, 255, 0.85)";
-        ctx.shadowColor = "rgba(150, 180, 255, 0.5)";
-        ctx.shadowBlur = 25;
+        ctx.fillStyle = "rgba(200, 220, 255, 0.95)";
+        ctx.shadowColor = "rgba(130, 170, 255, 0.8)";
+        ctx.shadowBlur = 50;
       } else {
         // user
         ctx.font = `400 ${p.fontSize}px "Courier New", monospace`;
-        ctx.fillStyle = "rgba(255, 240, 200, 0.8)";
-        ctx.shadowColor = "rgba(255, 200, 100, 0.6)";
-        ctx.shadowBlur = 15;
+        ctx.fillStyle = "rgba(255, 240, 200, 0.9)";
+        ctx.shadowColor = "rgba(255, 200, 100, 0.7)";
+        ctx.shadowBlur = 30;
       }
 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(p.text, 0, 0);
+
+      // Stroke for title particles (contrast / accent)
+      if (p.kind === "title" && ctx.strokeStyle) {
+        ctx.strokeText(p.text, 0, 0);
+      }
+
+      // Double-pass glow: draw text twice for luminous effect on voice/name/echo/transform
+      if (p.kind === "voice" || p.kind === "name" || p.kind === "echo" || p.kind === "transform") {
+        ctx.fillText(p.text, 0, 0);
+        // Second pass with extra glow
+        ctx.globalAlpha = p.opacity * 0.4;
+        ctx.shadowBlur *= 1.5;
+        ctx.fillText(p.text, 0, 0);
+      } else {
+        ctx.fillText(p.text, 0, 0);
+      }
 
       ctx.restore();
     }

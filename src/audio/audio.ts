@@ -69,7 +69,17 @@ export class Audio {
     this._started = true;
   }
 
-  /** Play a procedural drone (for dev/testing when no audio file is available). */
+  // --- Scene-reactive layer gains (set externally each frame) ---
+  private _noiseFilter: BiquadFilterNode | null = null;
+  private _noiseLfo: OscillatorNode | null = null;
+  private _noiseLfoGain: GainNode | null = null;
+  private _subGain: GainNode | null = null;
+  private _harmonicGain: GainNode | null = null;
+  private _noiseGain: GainNode | null = null;
+  private _padGain: GainNode | null = null;
+  private _reverbSend: GainNode | null = null;
+
+  /** Play a rich, evolving procedural soundscape. */
   playDrone(): void {
     if (!this._ctx) this.init();
     const ctx = this._ctx!;
@@ -78,34 +88,232 @@ export class Audio {
       ctx.resume();
     }
 
-    const osc1 = ctx.createOscillator();
-    osc1.type = "sine";
-    osc1.frequency.value = 55; // Low A
+    const now = ctx.currentTime;
+    const master = this._gainNode!;
 
-    const osc2 = ctx.createOscillator();
-    osc2.type = "sine";
-    osc2.frequency.value = 82.5; // E above
+    // ---- Layer 1: Sub bass (sine, 40-55 Hz) ----
+    this._subGain = ctx.createGain();
+    this._subGain.gain.value = 0.18;
 
-    const lfo = ctx.createOscillator();
-    lfo.type = "sine";
-    lfo.frequency.value = 0.2; // Slow modulation
+    const sub = ctx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.value = 45;
 
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 10;
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc1.frequency);
+    // Slow pitch drift on sub
+    const subLfo = ctx.createOscillator();
+    subLfo.type = "sine";
+    subLfo.frequency.value = 0.07;
+    const subLfoGain = ctx.createGain();
+    subLfoGain.gain.value = 3;
+    subLfo.connect(subLfoGain);
+    subLfoGain.connect(sub.frequency);
 
-    const droneGain = ctx.createGain();
-    droneGain.gain.value = 0.15;
+    sub.connect(this._subGain);
+    this._subGain.connect(master);
+    sub.start(now);
+    subLfo.start(now);
 
-    osc1.connect(droneGain);
-    osc2.connect(droneGain);
-    droneGain.connect(this._gainNode!);
+    // ---- Layer 2: Harmonic layer (detuned triangle pair) ----
+    this._harmonicGain = ctx.createGain();
+    this._harmonicGain.gain.value = 0.08;
 
-    osc1.start();
-    osc2.start();
-    lfo.start();
+    const harm1 = ctx.createOscillator();
+    harm1.type = "triangle";
+    harm1.frequency.value = 82.41; // E2
+    const harm2 = ctx.createOscillator();
+    harm2.type = "triangle";
+    harm2.frequency.value = 82.41 * 1.002; // Slight detune — chorus
+    const harm3 = ctx.createOscillator();
+    harm3.type = "sawtooth";
+    harm3.frequency.value = 110; // A2
+    const harmFilter = ctx.createBiquadFilter();
+    harmFilter.type = "lowpass";
+    harmFilter.frequency.value = 400;
+    harmFilter.Q.value = 1.5;
+
+    // LFO on harmonic filter cutoff
+    const harmLfo = ctx.createOscillator();
+    harmLfo.type = "sine";
+    harmLfo.frequency.value = 0.15;
+    const harmLfoGain = ctx.createGain();
+    harmLfoGain.gain.value = 200;
+    harmLfo.connect(harmLfoGain);
+    harmLfoGain.connect(harmFilter.frequency);
+
+    harm1.connect(harmFilter);
+    harm2.connect(harmFilter);
+    harm3.connect(harmFilter);
+    harmFilter.connect(this._harmonicGain);
+    this._harmonicGain.connect(master);
+    harm1.start(now);
+    harm2.start(now);
+    harm3.start(now);
+    harmLfo.start(now);
+
+    // ---- Layer 3: Filtered noise (breathing texture) ----
+    this._noiseGain = ctx.createGain();
+    this._noiseGain.gain.value = 0.04;
+
+    // Create noise buffer
+    const noiseLength = ctx.sampleRate * 4;
+    const noiseBuffer = ctx.createBuffer(1, noiseLength, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseLength; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    noise.loop = true;
+
+    this._noiseFilter = ctx.createBiquadFilter();
+    this._noiseFilter.type = "bandpass";
+    this._noiseFilter.frequency.value = 300;
+    this._noiseFilter.Q.value = 4;
+
+    // Slow sweep on noise filter — the "breathing"
+    this._noiseLfo = ctx.createOscillator();
+    this._noiseLfo.type = "sine";
+    this._noiseLfo.frequency.value = 0.08;
+    this._noiseLfoGain = ctx.createGain();
+    this._noiseLfoGain.gain.value = 250;
+    this._noiseLfo.connect(this._noiseLfoGain);
+    this._noiseLfoGain.connect(this._noiseFilter.frequency);
+
+    noise.connect(this._noiseFilter);
+    this._noiseFilter.connect(this._noiseGain);
+    this._noiseGain.connect(master);
+    noise.start(now);
+    this._noiseLfo.start(now);
+
+    // ---- Layer 4: Ethereal pad (detuned sine cluster) ----
+    this._padGain = ctx.createGain();
+    this._padGain.gain.value = 0.05;
+
+    const padFreqs = [164.81, 196.00, 246.94, 329.63]; // E3, G3, B3, E4
+    const padFilter = ctx.createBiquadFilter();
+    padFilter.type = "lowpass";
+    padFilter.frequency.value = 600;
+    padFilter.Q.value = 0.7;
+
+    for (const freq of padFreqs) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freq * (1 + (Math.random() - 0.5) * 0.006); // Slight random detune
+      osc.connect(padFilter);
+      osc.start(now);
+
+      // Individual slow vibrato
+      const vib = ctx.createOscillator();
+      vib.type = "sine";
+      vib.frequency.value = 0.1 + Math.random() * 0.15;
+      const vibGain = ctx.createGain();
+      vibGain.gain.value = freq * 0.003;
+      vib.connect(vibGain);
+      vibGain.connect(osc.frequency);
+      vib.start(now);
+    }
+
+    padFilter.connect(this._padGain);
+    this._padGain.connect(master);
+
+    // ---- Simple convolver reverb (impulse from noise) ----
+    this._reverbSend = ctx.createGain();
+    this._reverbSend.gain.value = 0.3;
+
+    const reverbLength = ctx.sampleRate * 3;
+    const reverbBuffer = ctx.createBuffer(2, reverbLength, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = reverbBuffer.getChannelData(ch);
+      for (let i = 0; i < reverbLength; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 1.2));
+      }
+    }
+    const reverb = ctx.createConvolver();
+    reverb.buffer = reverbBuffer;
+
+    this._reverbSend.connect(reverb);
+    reverb.connect(master);
+
+    // Send harmonic + pad layers to reverb
+    this._harmonicGain.connect(this._reverbSend);
+    this._padGain.connect(this._reverbSend);
+
+    // Fade in over 3 seconds
+    master.gain.setValueAtTime(0, now);
+    master.gain.linearRampToValueAtTime(0.15, now + 3);
+
     this._started = true;
+  }
+
+  /** Adjust layer mix based on scene. Call each frame or on scene change. */
+  setSceneMix(sceneId: string, progress: number): void {
+    if (!this._subGain) return;
+    const now = this._ctx!.currentTime;
+    const t = now + 0.05; // smoothing time
+
+    // Cancel any previously scheduled ramps to prevent event accumulation
+    this._subGain.gain.cancelScheduledValues(now);
+    this._harmonicGain!.gain.cancelScheduledValues(now);
+    this._noiseGain!.gain.cancelScheduledValues(now);
+    this._padGain!.gain.cancelScheduledValues(now);
+
+    // Set current value as starting point for the ramp
+    this._subGain.gain.setValueAtTime(this._subGain.gain.value, now);
+    this._harmonicGain!.gain.setValueAtTime(this._harmonicGain!.gain.value, now);
+    this._noiseGain!.gain.setValueAtTime(this._noiseGain!.gain.value, now);
+    this._padGain!.gain.setValueAtTime(this._padGain!.gain.value, now);
+
+    switch (sceneId) {
+      case "intro":
+        // Sub-dominant, quiet, intimate
+        this._subGain.gain.linearRampToValueAtTime(0.18, t);
+        this._harmonicGain!.gain.linearRampToValueAtTime(0.04 + progress * 0.06, t);
+        this._noiseGain!.gain.linearRampToValueAtTime(0.02, t);
+        this._padGain!.gain.linearRampToValueAtTime(0.02 + progress * 0.04, t);
+        break;
+      case "build":
+        // Harmonics and noise rise, energy builds
+        this._subGain.gain.linearRampToValueAtTime(0.15, t);
+        this._harmonicGain!.gain.linearRampToValueAtTime(0.08 + progress * 0.08, t);
+        this._noiseGain!.gain.linearRampToValueAtTime(0.04 + progress * 0.06, t);
+        this._padGain!.gain.linearRampToValueAtTime(0.06 + progress * 0.04, t);
+        // Open up noise filter as scene progresses
+        if (this._noiseFilter) {
+          this._noiseFilter.frequency.cancelScheduledValues(now);
+          this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
+          this._noiseFilter.frequency.linearRampToValueAtTime(300 + progress * 800, t);
+        }
+        break;
+      case "climax":
+        // Everything loud, noise wide open, intense
+        this._subGain.gain.linearRampToValueAtTime(0.20, t);
+        this._harmonicGain!.gain.linearRampToValueAtTime(0.14, t);
+        this._noiseGain!.gain.linearRampToValueAtTime(0.10, t);
+        this._padGain!.gain.linearRampToValueAtTime(0.10, t);
+        if (this._noiseFilter) {
+          this._noiseFilter.frequency.cancelScheduledValues(now);
+          this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
+          this._noiseFilter.frequency.linearRampToValueAtTime(1200, t);
+          this._noiseFilter.Q.cancelScheduledValues(now);
+          this._noiseFilter.Q.setValueAtTime(this._noiseFilter.Q.value, now);
+          this._noiseFilter.Q.linearRampToValueAtTime(2, t);
+        }
+        break;
+      case "outro": {
+        // Everything fades, pad lingers, noise becomes breath
+        const fade = 1 - progress;
+        this._subGain.gain.linearRampToValueAtTime(0.12 * fade, t);
+        this._harmonicGain!.gain.linearRampToValueAtTime(0.06 * fade, t);
+        this._noiseGain!.gain.linearRampToValueAtTime(0.03 * fade, t);
+        this._padGain!.gain.linearRampToValueAtTime(0.08 * fade, t);
+        if (this._noiseFilter) {
+          this._noiseFilter.frequency.cancelScheduledValues(now);
+          this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
+          this._noiseFilter.frequency.linearRampToValueAtTime(200, t);
+        }
+        break;
+      }
+    }
   }
 
   /** Call once per frame to update amplitude, bass, brightness, beatHit. */
@@ -146,6 +354,47 @@ export class Audio {
     const bassDelta = this.bass - this._prevBass;
     this.beatHit = bassDelta > this._beatThreshold;
     this._prevBass = this.bass;
+  }
+
+  /**
+   * Play a short synth pop/burst sound. Intensity 0-1 controls volume and pitch.
+   * Used for themed interactions (fireworks explosions, etc).
+   */
+  playPop(intensity = 0.5): void {
+    if (!this._ctx || !this._gainNode) return;
+    const ctx = this._ctx;
+    const now = ctx.currentTime;
+
+    // Short sine burst — pitched by intensity
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 300 + intensity * 600; // 300-900 Hz
+
+    // Noise burst via high-frequency oscillator pair
+    const osc2 = ctx.createOscillator();
+    osc2.type = "square";
+    osc2.frequency.value = 1200 + Math.random() * 800;
+
+    // Envelope — fast attack, quick decay
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(0.15 * intensity, now + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.08 + intensity * 0.12);
+
+    const env2 = ctx.createGain();
+    env2.gain.setValueAtTime(0, now);
+    env2.gain.linearRampToValueAtTime(0.06 * intensity, now + 0.003);
+    env2.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(env);
+    osc2.connect(env2);
+    env.connect(this._gainNode);
+    env2.connect(this._gainNode);
+
+    osc.start(now);
+    osc2.start(now);
+    osc.stop(now + 0.3);
+    osc2.stop(now + 0.1);
   }
 
   get volume(): number {

@@ -14,41 +14,78 @@ uniform float uHue;
 uniform float uAmplitude;
 uniform float uBass;
 uniform float uBrightness;
+uniform float uPulse;
 
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
+#include "noise.glsl"
+#include "post.glsl"
 
-// Build: layered sine waves — increasing complexity with progress
+// Build: organic complexity — domain-warped flow fields gaining structure
 void main() {
+  vec2 uv = vUv;
   vec2 p = (gl_FragCoord.xy - uResolution * 0.5) / min(uResolution.x, uResolution.y);
-  float t = uTime * uSpeed;
+  float t = uTime * uSpeed * 0.4;
 
-  // Number of wave layers increases with progress
-  float layers = 2.0 + uProgress * 6.0;
-  float val = 0.0;
+  p = applyTransforms(p, t);
+  float d = length(p);
 
-  for (float i = 1.0; i <= 8.0; i += 1.0) {
+  // Progressive domain warping — more layers as scene builds
+  float warpStrength = (0.4 + uProgress * 0.8) * uWarp * 2.0;
+  float ns = uNoiseScale;
+  int oct = int(uOctaves);
+  vec2 q = vec2(
+    fbm(p * ns + t * 0.15, oct - 1),
+    fbm(p * ns + vec2(5.2, 1.3) + t * 0.12, oct - 1)
+  );
+  vec2 r = vec2(
+    fbm(p * ns + q * warpStrength + vec2(1.7, 9.2) + t * 0.08, oct),
+    fbm(p * ns + q * warpStrength + vec2(8.3, 2.8) + t * 0.1, oct)
+  );
+
+  // The main pattern — double-warped noise
+  float f = fbm(p * ns + r * warpStrength, oct);
+
+  // Layered sine structure that grows with progress
+  float structure = 0.0;
+  float layers = 2.0 + uProgress * 5.0;
+  for (float i = 1.0; i <= 7.0; i += 1.0) {
     if (i > layers) break;
-    float freq = i * 3.0 + uBass * 5.0;
-    float phase = t * (0.5 + i * 0.3);
-    float wave = sin(p.x * freq + phase) * cos(p.y * freq * 0.7 + phase * 0.8);
-    val += wave / i;
+    float freq = i * 2.5 + uBass * 3.0;
+    structure += sin(f * freq + t * (0.3 + i * 0.2)) / (i * 1.5);
   }
+  structure = structure * 0.5 + 0.5;
 
-  val = val * 0.5 + 0.5;
-  val *= 1.0 + uAmplitude * 0.6;
+  // Color — warm to cool gradient driven by warp field
+  vec3 col1 = palette(f * 0.5 + uHue + t * 0.02,
+    vec3(0.5, 0.5, 0.5),
+    vec3(0.5, 0.5, 0.5),
+    vec3(2.0, 1.0, 0.0),
+    vec3(0.5, 0.2, 0.25)
+  );
 
-  // Color rotation
-  float hue = uHue + val * 0.3 + t * 0.03;
-  float sat = 0.5 + uBrightness * 0.4;
-  vec3 col = hsv2rgb(vec3(hue, sat, val * uIntensity));
+  vec3 col2 = palette(length(r) * 0.8 + uHue + 0.5,
+    vec3(0.5, 0.5, 0.5),
+    vec3(0.5, 0.5, 0.5),
+    vec3(1.0, 1.0, 0.5),
+    vec3(0.8, 0.9, 0.3)
+  );
 
-  // Vignette
-  float vig = 1.0 - dot(p, p) * 0.5;
-  col *= vig;
+  vec3 col = mix(col1, col2, structure);
+
+  // Brightness from combined fields
+  float brightness = (f * 0.5 + 0.5) * structure * 1.4 + 0.15;
+  brightness *= 1.0 + uAmplitude * 0.6;
+  col *= brightness * uIntensity;
+
+  // Bass pulses the saturation
+  col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 0.7 + uBass * 0.5);
+
+  // Click pulse — radial distortion wave
+  float pulseRing = abs(d - (1.0 - uPulse) * 1.5);
+  float pulseGlow = smoothstep(0.12, 0.0, pulseRing) * uPulse * 0.5;
+  col += vec3(0.5, 0.4, 0.3) * pulseGlow;
+  col *= 1.0 + uPulse * 0.15;
+
+  col = applyPost(col, uv, p, t);
 
   fragColor = vec4(col, 1.0);
 }
