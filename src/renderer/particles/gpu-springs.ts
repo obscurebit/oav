@@ -16,6 +16,8 @@ import { compileShader } from "../gl";
 import updateVertSrc from "./spring-update.vert";
 import renderVertSrc from "./spring-render.vert";
 import renderFragSrc from "./spring-render.frag";
+import lineVertSrc from "./spring-line.vert";
+import lineFragSrc from "./spring-line.frag";
 
 const FLOATS_PER_NODE = 10;
 const MAX_NODES = 4096;
@@ -69,7 +71,8 @@ export class GPUSpringSystem {
 
   // Programs
   private _updateProgram: WebGLProgram;
-  private _renderProgram: WebGLProgram;
+  private _renderProgram: WebGLProgram;  // For points
+  private _lineProgram: WebGLProgram;   // For lines
   private _tf: WebGLTransformFeedback;
 
   // Spring line rendering
@@ -101,6 +104,7 @@ export class GPUSpringSystem {
 
     this._updateProgram = this._createUpdateProgram(gl);
     this._renderProgram = this._createRenderProgram(gl);
+    this._lineProgram = this._createLineProgram(gl);
 
     this._vbos = [gl.createBuffer()!, gl.createBuffer()!];
     this._vaos = [gl.createVertexArray()!, gl.createVertexArray()!];
@@ -306,10 +310,10 @@ export class GPUSpringSystem {
 
     // Draw spring lines
     if (this.drawLines && this._lineIbo && this._lineCount > 0) {
-      gl.useProgram(this._renderProgram);
-      gl.uniform2f(gl.getUniformLocation(this._renderProgram, "uResolution"), gl.drawingBufferWidth, gl.drawingBufferHeight);
-      gl.uniform3fv(gl.getUniformLocation(this._renderProgram, "uBaseColor"), this.color);
-      gl.uniform1f(gl.getUniformLocation(this._renderProgram, "uTime"), 0);
+      gl.useProgram(this._lineProgram);
+      gl.uniform2f(gl.getUniformLocation(this._lineProgram, "uResolution"), gl.drawingBufferWidth, gl.drawingBufferHeight);
+      gl.uniform3fv(gl.getUniformLocation(this._lineProgram, "uBaseColor"), this.color);
+      gl.uniform1f(gl.getUniformLocation(this._lineProgram, "uTime"), 0);
 
       this._bindRenderVAO(this._current);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._lineIbo);
@@ -408,6 +412,26 @@ export class GPUSpringSystem {
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error(`Spring render link error:\n${gl.getProgramInfoLog(program)}`);
+    }
+
+    gl.detachShader(program, vert);
+    gl.detachShader(program, frag);
+    gl.deleteShader(vert);
+    gl.deleteShader(frag);
+    return program;
+  }
+
+  private _createLineProgram(gl: WebGL2RenderingContext): WebGLProgram {
+    const vert = compileShader(gl, gl.VERTEX_SHADER, lineVertSrc);
+    const frag = compileShader(gl, gl.FRAGMENT_SHADER, lineFragSrc);
+
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vert);
+    gl.attachShader(program, frag);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(`Spring line render link error:\n${gl.getProgramInfoLog(program)}`);
     }
 
     gl.detachShader(program, vert);
