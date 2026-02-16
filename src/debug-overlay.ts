@@ -10,6 +10,7 @@ export interface DebugFrame {
   fps: number;
   scene: string;
   sceneProgress: number;
+  activePreset: string | null;
   particleCount: number;
   audioStarted: boolean;
   moodEnergy: number;
@@ -134,9 +135,12 @@ export class DebugOverlay {
       `FPS: <b>${frame.fps.toFixed(0)}</b>  dt: ${(frame.dt * 1000).toFixed(1)}ms  particles: <b>${frame.particleCount}</b>`;
 
     // Engine
+    const presetLabel = frame.activePreset
+      ? `<span style="color:#fa0">${frame.activePreset}</span>`
+      : `<span style="color:#666">none</span>`;
     this._body(this._engineEl).innerHTML =
       `time: <b>${frame.elapsed.toFixed(1)}s</b>  scene: <b>${frame.scene}</b> (${(frame.sceneProgress * 100).toFixed(0)}%)` +
-      `\naudio: ${frame.audioStarted ? "<span style='color:#0f0'>ON</span>" : "<span style='color:#f44'>OFF</span>"}`;
+      `\npreset: ${presetLabel}  audio: ${frame.audioStarted ? "<span style='color:#0f0'>ON</span>" : "<span style='color:#f44'>OFF</span>"}`;
 
     // Mood
     const conf = frame.moodConfidence;

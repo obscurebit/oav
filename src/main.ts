@@ -714,6 +714,7 @@ function frame(now: number) {
       fps: dt > 0 ? 1 / dt : 0,
       scene: currentTransition?.current.sceneId ?? "?",
       sceneProgress: currentTransition?.current.progress ?? 0,
+      activePreset: toolBridge.activeTheme,
       particleCount: particles.count,
       audioStarted,
       moodEnergy,
