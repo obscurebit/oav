@@ -19,6 +19,10 @@ export interface DebugFrame {
   moodName: string;
   moodConfidence: number;
   params: Record<string, number>;
+  // GPU systems
+  gpuParticleCount: number;
+  gpuSpringNodes: number;
+  gpuSprings: number;
   // Director / Poet / Input status
   directorEnabled: boolean;
   directorPending: boolean;
@@ -149,7 +153,8 @@ export class DebugOverlay {
 
     // Perf
     this._body(this._perfEl).innerHTML =
-      `FPS: <b>${frame.fps.toFixed(0)}</b>  dt: ${(frame.dt * 1000).toFixed(1)}ms  particles: <b>${frame.particleCount}</b>`;
+      `FPS: <b>${frame.fps.toFixed(0)}</b>  dt: ${(frame.dt * 1000).toFixed(1)}ms  text: <b>${frame.particleCount}</b>` +
+      `\ngpu particles: <b>${frame.gpuParticleCount}</b>  springs: <b>${frame.gpuSpringNodes}</b> nodes / <b>${frame.gpuSprings}</b> links`;
 
     // Engine
     const presetLabel = frame.activePreset

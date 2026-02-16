@@ -37,6 +37,9 @@ export class Input {
   stillness = 0;
   /** True during the frame a tap was detected (click < 200ms, minimal drag) */
   tapped = false;
+  /** Tap position in clip space [-1, 1] (set on tap frame) */
+  tapX = 0;
+  tapY = 0;
 
   // --- Internal state ---
 
@@ -71,6 +74,11 @@ export class Input {
   /** Whether the mouse button is currently pressed. */
   get pressed(): boolean { return this._pressed; }
 
+  /** Current mouse X in clip space [-1, 1]. */
+  get dragX(): number { return this.mouseX * 2 - 1; }
+  /** Current mouse Y in clip space [-1, 1] (Y-flipped for GL). */
+  get dragY(): number { return -(this.mouseY * 2 - 1); }
+
   private _bindMouse(): void {
     this._canvas.addEventListener("mousemove", (e: Event) => {
       const me = e as MouseEvent;
@@ -103,6 +111,9 @@ export class Input {
       // Detect tap: short press with minimal drag
       if (elapsed < 200 && this._dragDistance < 0.03) {
         this.tapped = true;
+        // Store tap position in clip space [-1, 1]
+        this.tapX = this._downX * 2 - 1;
+        this.tapY = -(this._downY * 2 - 1); // flip Y for GL
       }
 
       // Record click time for flurry detection

@@ -7,6 +7,8 @@ import { SceneRegistry } from "./scene";
 import type { SceneState } from "./scene";
 import type { ParameterStore } from "../engine/params";
 import type { TransitionState, ActiveScene } from "../engine/timeline";
+import type { GPUParticleSystem } from "./particles/gpu-particles";
+import type { GPUSpringSystem } from "./particles/gpu-springs";
 import vertSrc from "./shaders/fullscreen.vert";
 import overlayFragSrc from "./shaders/overlay.frag";
 
@@ -24,6 +26,10 @@ export class Renderer {
   private _registry: SceneRegistry;
   private _overlayProgram: WebGLProgram;
   private _overlayUniforms: UniformCache;
+
+  /** Optional GPU systems — rendered between scene shaders and text overlay */
+  gpuParticles: GPUParticleSystem | null = null;
+  gpuSprings: GPUSpringSystem | null = null;
 
   constructor(gl: WebGL2RenderingContext, registry: SceneRegistry) {
     this._gl = gl;
@@ -45,6 +51,10 @@ export class Renderer {
     if (state.transition) {
       this._drawScenes(state);
     }
+
+    // Draw GPU particles and springs on top of scene (additive blend)
+    if (this.gpuParticles) this.gpuParticles.render();
+    if (this.gpuSprings) this.gpuSprings.render();
 
     // Composite text overlay on top
     if (state.overlayTexture) {

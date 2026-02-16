@@ -38,7 +38,7 @@ export const PRESETS: Record<string, Record<string, number>> = {
   storm:       { speed: 3.0, warp: 2.5, strobe: 0.4, aberration: 0.5, intensity: 0.85, contrast: 1.5 },
   aurora:      { hue: 0.38, bloom: 1.0, wobble: 0.4, saturation: 1.6, warmth: -0.3, speed: 0.6, warp: 0.8 },
   lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8 },
-  fireworks:   { bloom: 0.8, strobe: 0.5, saturation: 1.4, speed: 2.0, zoom: 0.5, intensity: 0.95, warmth: 0.6, contrast: 2.2, vignette: 1.5, hue: 0.05, warp: 0.3, spin: 0, aberration: 0.1, noise_scale: 5, ridge: 0.5 },
+  fireworks:   { bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, hue: 0.05, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3 },
   void:        { zoom: 4.5, spin: 1.5, intensity: 0.05, warp: 2.5, saturation: 0, contrast: 2.5, vignette: 2.0, aberration: 0.7, speed: 2.0 },
   reset:       { intensity: 0.5, speed: 1, hue: 0, saturation: 1, contrast: 1, warmth: 0, gamma: 1, invert: 0,
                  zoom: 1, rotation: 0, symmetry: 0, mirror_x: 0, mirror_y: 0, warp: 0.5, noise_scale: 3,
@@ -91,6 +91,12 @@ export class ToolBridge {
         return this._transitionTo(args);
       case "spawn_particles":
         return this._spawnParticles(args);
+      case "firework":
+        return this._firework(args);
+      case "sparkle":
+        return this._sparkle(args);
+      case "poke_springs":
+        return this._pokeSprings(args);
       case "apply_preset":
         return this._applyPreset(args);
       default:
@@ -220,6 +226,49 @@ export class ToolBridge {
     return `spawned ${texts.length} ${kind} particles`;
   }
 
+  // --- GPU effects ---
+
+  private _firework(args: Record<string, unknown>): string {
+    const x = Number(args.x ?? 0);
+    const y = Number(args.y ?? 0);
+    const intensity = Math.max(0.1, Math.min(2.0, Number(args.intensity ?? 1.0)));
+
+    // Access GPU particles through global window (hacky but works for now)
+    const oav = (window as any).__OAV__;
+    if (oav?.gpuParticles) {
+      oav.gpuParticles.firework(x, y, intensity);
+      return `firework burst at (${x.toFixed(2)}, ${y.toFixed(2)}) intensity=${intensity.toFixed(1)}`;
+    }
+    return "GPU particles not available";
+  }
+
+  private _sparkle(args: Record<string, unknown>): string {
+    const x = Number(args.x ?? 0);
+    const y = Number(args.y ?? 0);
+    const count = Math.max(5, Math.min(50, Number(args.count ?? 10)));
+
+    const oav = (window as any).__OAV__;
+    if (oav?.gpuParticles) {
+      oav.gpuParticles.sparkle(x, y, count);
+      return `sparkle burst at (${x.toFixed(2)}, ${y.toFixed(2)}) count=${count}`;
+    }
+    return "GPU particles not available";
+  }
+
+  private _pokeSprings(args: Record<string, unknown>): string {
+    const x = Number(args.x ?? 0);
+    const y = Number(args.y ?? 0);
+    const radius = Math.max(0.1, Math.min(1.0, Number(args.radius ?? 0.3)));
+    const force = Math.max(0.1, Math.min(2.0, Number(args.force ?? 0.5)));
+
+    const oav = (window as any).__OAV__;
+    if (oav?.gpuSprings) {
+      oav.gpuSprings.poke(x, y, radius, force);
+      return `poke springs at (${x.toFixed(2)}, ${y.toFixed(2)}) radius=${radius.toFixed(2)} force=${force.toFixed(1)}`;
+    }
+    return "GPU springs not available";
+  }
+
   // --- Presets ---
 
   private _applyPreset(args: Record<string, unknown>): string {
@@ -234,6 +283,17 @@ export class ToolBridge {
     this.activeTheme = preset === "reset" ? null : preset;
 
     const duration = preset === "reset" ? 2.0 : 1.5;
+
+    // Special case: fireworks preset triggers GPU fireworks
+    if (preset === "fireworks") {
+      const oav = (window as any).__OAV__;
+      if (oav?.gpuParticles) {
+        // Trigger multiple firework bursts across the screen
+        oav.gpuParticles.firework(-0.5, 0.2, 0.8);
+        setTimeout(() => oav.gpuParticles.firework(0.3, -0.1, 1.0), 200);
+        setTimeout(() => oav.gpuParticles.firework(0.0, 0.4, 0.6), 400);
+      }
+    }
     let count = 0;
     for (const [name, target] of Object.entries(values)) {
       if (!p.has(name)) continue;

@@ -278,6 +278,90 @@ const spawnParticlesTool: ToolDefinition = {
   },
 };
 
+// --- Level 3+: GPU effects ---
+
+const fireworkTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "firework",
+    description: "Trigger a firework burst at a position. Creates bright particles that fall with gravity and fade.",
+    parameters: {
+      type: "object",
+      properties: {
+        x: {
+          type: "number",
+          description: "X position in normalized coordinates [-1, 1].",
+        },
+        y: {
+          type: "number",
+          description: "Y position in normalized coordinates [-1, 1].",
+        },
+        intensity: {
+          type: "number",
+          description: "Intensity of the burst (0.1 to 2.0). Default 1.0.",
+        },
+      },
+      required: ["x", "y"],
+    },
+  },
+};
+
+const sparkleTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "sparkle",
+    description: "Create gentle ambient sparkles at a position. Use for magical moments or subtle effects.",
+    parameters: {
+      type: "object",
+      properties: {
+        x: {
+          type: "number",
+          description: "X position in normalized coordinates [-1, 1].",
+        },
+        y: {
+          type: "number",
+          description: "Y position in normalized coordinates [-1, 1].",
+        },
+        count: {
+          type: "number",
+          description: "Number of sparkles (5 to 50). Default 10.",
+        },
+      },
+      required: ["x", "y"],
+    },
+  },
+};
+
+const pokeSpringsTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "poke_springs",
+    description: "Poke the spring mesh, causing it to jiggle and deform. Creates organic jello-like movement.",
+    parameters: {
+      type: "object",
+      properties: {
+        x: {
+          type: "number",
+          description: "X position in normalized coordinates [-1, 1].",
+        },
+        y: {
+          type: "number",
+          description: "Y position in normalized coordinates [-1, 1].",
+        },
+        radius: {
+          type: "number",
+          description: "Radius of influence (0.1 to 1.0). Default 0.3.",
+        },
+        force: {
+          type: "number",
+          description: "Force strength (0.1 to 2.0). Default 0.5.",
+        },
+      },
+      required: ["x", "y"],
+    },
+  },
+};
+
 // --- Level 3+: Preset combos (high-level named effects) ---
 
 const applyPresetTool: ToolDefinition = {
@@ -346,6 +430,11 @@ export const ALL_TOOLS: ToolDefinition[] = [
   // Level 3: Structural
   transitionToTool,
   spawnParticlesTool,
+  // Level 3+: GPU effects
+  fireworkTool,
+  sparkleTool,
+  pokeSpringsTool,
+  // Preset combos
   applyPresetTool,
 ];
 
@@ -357,6 +446,11 @@ export const ENGINE_TOOLS: ToolDefinition[] = [
   pulseParamTool,
   transitionToTool,
   spawnParticlesTool,
+  // GPU effects
+  fireworkTool,
+  sparkleTool,
+  pokeSpringsTool,
+  // Preset combos
   applyPresetTool,
 ];
 

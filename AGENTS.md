@@ -60,6 +60,16 @@ src/
       climax.frag      # Climax scene fragment shader
       outro.frag       # Outro scene fragment shader
       overlay.frag     # Text overlay compositor shader (Y-flipped UV)
+    particles/
+      index.ts           # Barrel export for GPU systems
+      gpu-particles.ts  # GPU particle system (WebGL2 transform feedback, 16K particles)
+      gpu-springs.ts    # Mass-spring system (jello, cloth, tendrils, webs)
+      particle-update.vert # Particle physics shader (gravity, drag, turbulence)
+      particle-render.vert # Particle render shader (points with soft circles)
+      particle-render.frag # Particle fragment shader (glowing points)
+      spring-update.vert   # Spring force computation (CPU) + integration (GPU)
+      spring-render.vert   # Spring node rendering (lines + points)
+      spring-render.frag   # Spring fragment shader
     __tests__/         # SceneRegistry tests
   audio/
     index.ts           # Barrel export
@@ -150,7 +160,32 @@ npx vite --port 5173
 - [x] PoetDirective — Director→Poet communication includes magnitude, style hint, action summary
 - [x] Infinite portal — no outro in auto-cycle, random scene flow (intro/build/climax), never-ending
 - [x] Scene transition debug logging (SCENE tag in overlay)
+- [x] GPU particle system — 16K particles via WebGL2 transform feedback (fireworks, fountains, sparkles)
+- [x] Mass-spring system — spring-centric jello/cloth/tendril meshes (Hooke's law + damping)
+- [x] GPU tools — firework, sparkle, poke_springs (LLM-triggered particle/spring effects)
 - [ ] WebGPU upgrade path (Phase 2)
+
+## GPU Systems
+
+### Particle System (WebGL2 Transform Feedback)
+- **16K particles** with physics entirely on GPU
+- **Emitters**: `firework()` (radial burst), `fountain()` (upward stream), `sparkle()` (ambient)
+- **Physics**: gravity, drag, turbulence, trails, color fade
+- **Rendering**: soft circular points with additive blending
+- **Interaction**: tap gestures trigger firework bursts at click location
+
+### Mass-Spring System
+- **Spring-centric approach** (Hooke's law + damping) inspired by arxiv 2507.11794
+- **Mesh types**: jello, cloth, tendrils, webs via configurable grids
+- **Physics**: CPU computes spring forces, GPU integrates via transform feedback
+- **Interaction**: mouse drag influences mesh (push/pull), tap gestures poke the mesh
+- **Audio-reactive**: bass pulses jiggle the spring mesh
+- **Rendering**: lines for springs, optional nodes for mass visualization
+
+### LLM Integration
+- **GPU tools**: `firework(x, y, intensity)`, `sparkle(x, y, count)`, `poke_springs(x, y, radius, force)`
+- **Fireworks preset**: triggers multiple GPU firework bursts across screen
+- **Debug interface**: `__OAV__.gpuParticles`, `__OAV__.gpuSprings`, `__OAV__.firework()`, etc.
 
 ## Gotchas
 - `vite.config.ts` uses ESM `import.meta.url` for `__dirname` (no CommonJS)
