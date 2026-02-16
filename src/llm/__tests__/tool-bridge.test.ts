@@ -3,6 +3,7 @@ import { ToolBridge } from "../tool-bridge";
 import { ParameterStore } from "../../engine/params";
 import { Timeline } from "../../engine/timeline";
 import { TextParticleSystem } from "../../overlay/text-particles";
+import { Clock } from "../../engine/clock";
 import type { ToolCall } from "../tools";
 
 function makeBridge() {
@@ -50,8 +51,9 @@ function makeBridge() {
     params,
     timeline,
     particles,
-    canvasWidth: () => 1000,
+    canvasWidth: () => 800,
     canvasHeight: () => 800,
+    clock: new Clock(), // Add Clock to test initialization
   });
 
   return { bridge, params, timeline, particles };

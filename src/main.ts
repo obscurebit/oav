@@ -59,6 +59,7 @@ const toolBridge = new ToolBridge({
   particles,
   canvasWidth: () => canvas.width,
   canvasHeight: () => canvas.height,
+  clock,
 });
 
 // --- LLM Director (or ambient fallback) ---
@@ -509,44 +510,30 @@ params.define("aberration", 0, 1, 0);        // chromatic aberration
 params.define("glitch", 0, 1, 0);            // digital glitch effect
 params.define("feedback", 0, 1, 0);          // temporal feedback / trails
 
-// --- Infinite timeline: intro first, then fluid random scene cycling ---
-// Scenes flow organically — never the same scene twice in a row.
-// "outro" is reserved for LLM-triggered dramatic moments, not auto-scheduled.
-const FLOWING_SCENES = ["intro", "build", "climax"];
+// --- Director-Controlled Timeline ---
+// Scenes only change when Director explicitly transitions
+// This gives the LLM full creative control over narrative flow
+const DIRECTOR_SCENES = ["intro", "build", "climax", "outro"];
 let timelineEnd = 0;
-let lastScheduledScene = "";
+let lastScheduledScene = "intro";
 
 function extendTimeline(count: number = 4): void {
-  for (let i = 0; i < count; i++) {
-    let sceneId: string;
-
-    if (timelineEnd === 0) {
-      // Always start with intro
-      sceneId = "intro";
-    } else {
-      // Pick a random scene that isn't the same as the last one
-      const candidates = FLOWING_SCENES.filter(s => s !== lastScheduledScene);
-      sceneId = candidates[Math.floor(Math.random() * candidates.length)];
-    }
-
-    // Varied durations — longer scenes feel more immersive
-    let baseDuration = 25 + Math.random() * 20; // 25-45s
-    if (sceneId === "climax") baseDuration = 18 + Math.random() * 15; // 18-33s (shorter, intense)
-    if (sceneId === "intro" && timelineEnd === 0) baseDuration = 22 + Math.random() * 8; // 22-30s first time
-
-    // Smooth crossfades (3-5s), except the very first scene
-    const transitionDuration = timelineEnd === 0 ? 0 : 3 + Math.random() * 2;
-    const startTime = timelineEnd;
+  // Only seed initial timeline, then Director takes control
+  if (timelineEnd === 0) {
+    // Start with intro only
+    const baseDuration = 30; // Fixed intro duration
+    const startTime = 0;
     const endTime = startTime + baseDuration;
 
-    timeline.add({ startTime, endTime, sceneId, transitionDuration });
+    timeline.add({ startTime, endTime, sceneId: "intro", transitionDuration: 0 });
     timelineEnd = endTime;
-    lastScheduledScene = sceneId;
+    lastScheduledScene = "intro";
   }
+  // No more auto-extensions - Director controls all subsequent scenes
 }
 
-// Seed the first batch of scenes
-extendTimeline(4);
+// Seed only the initial intro scene
+extendTimeline(1);
 
 // --- Resize handler ---
 function resize() {
@@ -623,10 +610,9 @@ function frame(now: number) {
 
   clock.tick(dt);
 
-  // Auto-extend timeline before we run out of scenes, and prune old entries
-  if (clock.elapsed > timelineEnd - 60) {
-    extendTimeline(1);
-    timeline.prune(clock.elapsed);
+  // Clean up old timeline entries (Director controls when to add new scenes)
+  if (timelineEnd > 0 && clock.elapsed > timelineEnd + 300) {
+    timeline.prune(clock.elapsed - 60); // Keep last 60 seconds for context
   }
 
   input.tick(dt);

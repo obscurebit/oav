@@ -8,6 +8,7 @@ import type { Timeline } from "../engine/timeline";
 import type { TextParticleSystem } from "../overlay/text-particles";
 import type { ToolCall } from "./tools";
 import { MOOD_MAPPINGS } from "./tools";
+import type { Clock } from "../engine/clock";
 
 export interface ToolBridgeDeps {
   params: ParameterStore;
@@ -15,6 +16,7 @@ export interface ToolBridgeDeps {
   particles: TextParticleSystem;
   canvasWidth: () => number;
   canvasHeight: () => number;
+  clock: Clock;
 }
 
 /** Named visual presets — curated param combos for distinct visual moods. */
@@ -253,15 +255,35 @@ export class ToolBridge {
     const validScenes = ["intro", "build", "climax", "outro"];
     if (!validScenes.includes(sceneId)) return `unknown scene: ${sceneId}`;
 
-    // Find the target scene entry and adjust timeline
-    const entries = this._deps.timeline.entries;
-    const target = entries.find((e) => e.sceneId === sceneId);
-    if (!target) return `scene not in timeline: ${sceneId}`;
+    // Get current time and add new scene entry
+    const currentTime = this._deps.clock.elapsed;
+    const transitionDuration = 3.0; // Smooth crossfade duration
+    const startTime = currentTime;
+    const endTime = startTime + duration;
 
-    // We can't truly "jump" the timeline clock, but we can speak about it
-    // For now, log the intent — full timeline manipulation is Phase 2
-    console.log(`[ToolBridge] transition_to ${sceneId} (${duration}s) — noted for future implementation`);
-    return `transition requested: ${sceneId} (${duration}s)`;
+    // Add the new scene to timeline
+    this._deps.timeline.add({ 
+      startTime, 
+      endTime, 
+      sceneId, 
+      transitionDuration 
+    });
+
+    // Update timeline end marker
+    const timelineEnd = endTime;
+    
+    // Trigger scene title for the new scene
+    if (typeof window !== 'undefined') {
+      const oav = (window as any).__OAV__;
+      if (oav?.particles?.showSceneTitle) {
+        const canvas = oav.renderer?._gl?.canvas;
+        if (canvas) {
+          oav.particles.showSceneTitle(sceneId, canvas.width, canvas.height);
+        }
+      }
+    }
+
+    return `transitioned to ${sceneId} (${duration}s scene, ${transitionDuration}s fade)`;
   }
 
   private _spawnParticles(args: Record<string, unknown>): string {
