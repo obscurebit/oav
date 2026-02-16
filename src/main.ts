@@ -89,6 +89,11 @@ function buildDirectorContext(userWords: string | null): DirectorContext {
 const useProxy = !baseUrl || baseUrl.includes("nvidia.com");
 const poetModel = import.meta.env.VITE_POET_MODEL as string | undefined;
 
+// Optional separate Poet API configuration
+const poetApiKey = import.meta.env.VITE_POET_API_KEY as string | undefined;
+const poetBaseUrl = import.meta.env.VITE_POET_BASE_URL as string | undefined;
+const usePoetProxy = !poetBaseUrl || poetBaseUrl.includes("nvidia.com");
+
 // Dual-LLM mode: Director (nemotron, tool-calling) + Poet (llama-4-scout, words only)
 const director = apiKey
   ? new Director({
@@ -99,10 +104,10 @@ const director = apiKey
     })
   : null;
 
-const poet = apiKey
+const poet = (apiKey || poetApiKey)
   ? new Poet({
-      apiKey,
-      ...(useProxy ? {} : { apiUrl: `${baseUrl}/chat/completions` }),
+      apiKey: poetApiKey || apiKey!,
+      ...(usePoetProxy ? {} : { apiUrl: `${poetBaseUrl || baseUrl}/chat/completions` }),
       ...(poetModel ? { model: poetModel } : {}),
     })
   : null;
