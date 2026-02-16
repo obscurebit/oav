@@ -234,14 +234,14 @@ const transitionToTool: ToolDefinition = {
   function: {
     name: "transition_to",
     description:
-      "Trigger a crossfade transition to a different scene. Use when the moment calls for a dramatic shift.",
+      "Trigger a crossfade transition to a different scene. Scenes auto-cycle fluidly, so only use this for dramatic shifts. Use 'outro' sparingly — it's a rare moment of dissolution and silence, not a regular phase.",
     parameters: {
       type: "object",
       properties: {
         scene_id: {
           type: "string",
           enum: ["intro", "build", "climax", "outro"],
-          description: "The scene to transition to.",
+          description: "intro=emergence/awakening, build=complexity/layering, climax=intensity/overwhelm, outro=dissolution/silence (rare, dramatic).",
         },
         duration: {
           type: "number",
@@ -333,6 +333,7 @@ Available presets:
 
 // --- Export all tools ---
 
+/** Full tool set (legacy — includes speak/whisper for single-LLM mode). */
 export const ALL_TOOLS: ToolDefinition[] = [
   // Level 1: Poetic
   speakTool,
@@ -343,6 +344,17 @@ export const ALL_TOOLS: ToolDefinition[] = [
   driftParamTool,
   pulseParamTool,
   // Level 3: Structural
+  transitionToTool,
+  spawnParticlesTool,
+  applyPresetTool,
+];
+
+/** Engine-only tools for the Director in dual-LLM mode (no speak/whisper — Poet handles words). */
+export const ENGINE_TOOLS: ToolDefinition[] = [
+  shiftMoodTool,
+  setParamTool,
+  driftParamTool,
+  pulseParamTool,
   transitionToTool,
   spawnParticlesTool,
   applyPresetTool,

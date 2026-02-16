@@ -316,6 +316,69 @@ export class Audio {
     }
   }
 
+  /**
+   * Adjust the drone tone based on mood params. Call when mood changes significantly.
+   * energy: 0 = peaceful/still, 1 = intense/chaotic
+   * warmth: -1 = cold/blue, 0 = neutral, 1 = warm/red
+   * texture: 0 = smooth/clean, 1 = rough/noisy
+   */
+  setMood(energy: number, warmth: number, texture: number): void {
+    if (!this._ctx || !this._subGain) return;
+    const now = this._ctx.currentTime;
+    const t = now + 0.3; // smooth 300ms transition
+
+    // Sub bass: louder when intense, quieter when peaceful
+    this._subGain.gain.cancelScheduledValues(now);
+    this._subGain.gain.setValueAtTime(this._subGain.gain.value, now);
+    this._subGain.gain.linearRampToValueAtTime(0.08 + energy * 0.14, t);
+
+    // Harmonics: brighter when intense
+    if (this._harmonicGain) {
+      this._harmonicGain.gain.cancelScheduledValues(now);
+      this._harmonicGain.gain.setValueAtTime(this._harmonicGain.gain.value, now);
+      this._harmonicGain.gain.linearRampToValueAtTime(0.03 + energy * 0.12, t);
+    }
+
+    // Noise: more texture when rough, less when smooth
+    if (this._noiseGain) {
+      this._noiseGain.gain.cancelScheduledValues(now);
+      this._noiseGain.gain.setValueAtTime(this._noiseGain.gain.value, now);
+      this._noiseGain.gain.linearRampToValueAtTime(0.01 + texture * 0.08, t);
+    }
+
+    // Noise filter: open when intense, narrow when peaceful (like flowing water)
+    if (this._noiseFilter) {
+      this._noiseFilter.frequency.cancelScheduledValues(now);
+      this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
+      this._noiseFilter.frequency.linearRampToValueAtTime(150 + energy * 1000, t);
+      this._noiseFilter.Q.cancelScheduledValues(now);
+      this._noiseFilter.Q.setValueAtTime(this._noiseFilter.Q.value, now);
+      // Peaceful = high Q (narrow, water-like), intense = low Q (wide, harsh)
+      this._noiseFilter.Q.linearRampToValueAtTime(6 - energy * 4, t);
+    }
+
+    // Noise LFO speed: slow breathing when peaceful, faster when intense
+    if (this._noiseLfo) {
+      this._noiseLfo.frequency.cancelScheduledValues(now);
+      this._noiseLfo.frequency.setValueAtTime(this._noiseLfo.frequency.value, now);
+      this._noiseLfo.frequency.linearRampToValueAtTime(0.04 + energy * 0.15, t);
+    }
+
+    // Pad: louder when peaceful (ethereal), quieter when intense (drowned out)
+    if (this._padGain) {
+      this._padGain.gain.cancelScheduledValues(now);
+      this._padGain.gain.setValueAtTime(this._padGain.gain.value, now);
+      this._padGain.gain.linearRampToValueAtTime(0.08 - energy * 0.04, t);
+    }
+
+    // Reverb send: more reverb when peaceful (spacious), less when intense (tight)
+    if (this._reverbSend) {
+      this._reverbSend.gain.cancelScheduledValues(now);
+      this._reverbSend.gain.setValueAtTime(this._reverbSend.gain.value, now);
+      this._reverbSend.gain.linearRampToValueAtTime(0.15 + (1 - energy) * 0.25, t);
+    }
+  }
+
   /** Call once per frame to update amplitude, bass, brightness, beatHit. */
   update(): void {
     if (!this._analyser || !this._started) return;
@@ -357,44 +420,80 @@ export class Audio {
   }
 
   /**
-   * Play a short synth pop/burst sound. Intensity 0-1 controls volume and pitch.
-   * Used for themed interactions (fireworks explosions, etc).
+   * Play a short synth sound. Intensity 0-1 controls volume and pitch.
+   * Energy 0-1 controls the character: 0 = soft chime (peaceful), 1 = sharp pop (intense).
    */
-  playPop(intensity = 0.5): void {
+  playPop(intensity = 0.5, energy = 0.5): void {
     if (!this._ctx || !this._gainNode) return;
     const ctx = this._ctx;
     const now = ctx.currentTime;
 
-    // Short sine burst — pitched by intensity
-    const osc = ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = 300 + intensity * 600; // 300-900 Hz
+    if (energy < 0.3) {
+      // --- Peaceful: soft chime / water drop ---
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      // Higher, bell-like pitch — gentle
+      osc.frequency.value = 600 + intensity * 400 + Math.random() * 200;
 
-    // Noise burst via high-frequency oscillator pair
-    const osc2 = ctx.createOscillator();
-    osc2.type = "square";
-    osc2.frequency.value = 1200 + Math.random() * 800;
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0, now);
+      env.gain.linearRampToValueAtTime(0.06 * intensity, now + 0.01);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.3 + intensity * 0.4);
 
-    // Envelope — fast attack, quick decay
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, now);
-    env.gain.linearRampToValueAtTime(0.15 * intensity, now + 0.005);
-    env.gain.exponentialRampToValueAtTime(0.001, now + 0.08 + intensity * 0.12);
+      // Optional harmonic overtone for bell quality
+      const osc2 = ctx.createOscillator();
+      osc2.type = "sine";
+      osc2.frequency.value = osc.frequency.value * 2.5; // bell partial
 
-    const env2 = ctx.createGain();
-    env2.gain.setValueAtTime(0, now);
-    env2.gain.linearRampToValueAtTime(0.06 * intensity, now + 0.003);
-    env2.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      const env2 = ctx.createGain();
+      env2.gain.setValueAtTime(0, now);
+      env2.gain.linearRampToValueAtTime(0.02 * intensity, now + 0.005);
+      env2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
-    osc.connect(env);
-    osc2.connect(env2);
-    env.connect(this._gainNode);
-    env2.connect(this._gainNode);
+      osc.connect(env);
+      osc2.connect(env2);
 
-    osc.start(now);
-    osc2.start(now);
-    osc.stop(now + 0.3);
-    osc2.stop(now + 0.1);
+      // Route through reverb if available for spacious feel
+      const target = this._reverbSend ?? this._gainNode;
+      env.connect(target);
+      env2.connect(target);
+
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 0.8);
+      osc2.stop(now + 0.3);
+    } else {
+      // --- Intense: sharp pop / burst ---
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = 300 + intensity * 600; // 300-900 Hz
+
+      // Noise burst via high-frequency oscillator pair
+      const osc2 = ctx.createOscillator();
+      osc2.type = "square";
+      osc2.frequency.value = 1200 + Math.random() * 800;
+
+      // Envelope — fast attack, quick decay
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0, now);
+      env.gain.linearRampToValueAtTime(0.15 * intensity, now + 0.005);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.08 + intensity * 0.12);
+
+      const env2 = ctx.createGain();
+      env2.gain.setValueAtTime(0, now);
+      env2.gain.linearRampToValueAtTime(0.06 * intensity, now + 0.003);
+      env2.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+      osc.connect(env);
+      osc2.connect(env2);
+      env.connect(this._gainNode);
+      env2.connect(this._gainNode);
+
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 0.3);
+      osc2.stop(now + 0.1);
+    }
   }
 
   get volume(): number {

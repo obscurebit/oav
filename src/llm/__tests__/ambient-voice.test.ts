@@ -42,13 +42,13 @@ describe("AmbientVoice", () => {
 
     voice.respondToUser("ocean");
 
-    // Drain the response queue by calling update multiple times
-    voice.update(2);
-    voice.update(6);
-    voice.update(10);
+    // Drain the full response queue (3 lines per response) with enough updates
+    for (let t = 2; t <= 20; t += 2) {
+      voice.update(t);
+    }
 
-    // Should have fired at least 2 responses
-    expect(cb.mock.calls.length).toBeGreaterThanOrEqual(2);
+    // Should have fired at least 3 responses (the full template)
+    expect(cb.mock.calls.length).toBeGreaterThanOrEqual(3);
     // At least one response should reference the user's word
     const allWords = cb.mock.calls.map((c: string[]) => c[0]).join(" ");
     expect(allWords).toContain("ocean");

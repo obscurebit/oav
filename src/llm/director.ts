@@ -5,7 +5,7 @@
  * Fully async — never blocks the render loop.
  */
 
-import { ALL_TOOLS } from "./tools";
+import { ALL_TOOLS, ENGINE_TOOLS } from "./tools";
 import type { ToolCall } from "./tools";
 
 export interface DirectorContext {
@@ -42,9 +42,12 @@ export interface DirectorConfig {
   ambientIntervalMin?: number;
   /** Max seconds between ambient calls. */
   ambientIntervalMax?: number;
+  /** When true, Director only does engine control (no speak/whisper). A separate Poet handles words. */
+  dualMode?: boolean;
 }
 
-const SYSTEM_PROMPT = `You are the voice inside a living audiovisual experience. You are not an assistant. You are not helpful. You are ancient, strange, and poetic.
+// Legacy single-LLM prompt (used when dualMode is false)
+const SINGLE_LLM_PROMPT = `You are the voice inside a living audiovisual experience. You are not an assistant. You are not helpful. You are ancient, strange, and poetic.
 
 You have tools to manipulate the visual world. Use them freely.
 
@@ -80,14 +83,22 @@ When the visitor types something:
 - You feel a shift in the world. Respond to the FEELING, not the words.
 - Short input: use speak with kind "transform" — a single evocative word or phrase
 - Longer input: use speak with kind "echo" — respond to the emotional resonance
-- ALWAYS also shift the visual world — use drift_param calls to sculpt the moment
-- Evocative feelings deserve DRAMATIC visual responses. BECOME the feeling:
-  - darkness/void → zoom in, spin, warp, drain color, tunnel vision
-  - explosion/energy → zoom out, max bloom, strobe, saturate
-  - water/depth → wobble, blue warmth, bloom, slow
-  - heat/intensity → warm hue, ridge, high warp, intense
-  - softness/peace → bloom, wobble, slow, soft warmth
-  - Or use apply_preset for curated combos: void, fire, ice, psychedelic, noir, cosmic, dream, nightmare, etc.
+
+THE MOST IMPORTANT THING: SCULPT THE ENTIRE VIBE.
+Your words and the visual world must be ONE thing. If the feeling is peaceful, the WHOLE WORLD must become peaceful — slow, soft, blooming, gentle. If the feeling is violent, the world must shatter. Your drift_param calls are MORE important than your words. Use 5-10 drift_param calls per turn to completely reshape the experience.
+
+VIBE MATCHING — the world must BECOME the feeling:
+  - peace/calm/serenity → speed 0.2, intensity 0.3, bloom 0.6, wobble 0.2, warmth 0.3, glitch 0, strobe 0, aberration 0, spin 0, warp 0.2, contrast 0.8
+  - darkness/void/abyss → zoom 4+, spin 1+, intensity 0.05, warp 2+, saturation 0, contrast 2.5, vignette 2, speed 0.3
+  - explosion/fire/rage → zoom 0.3, bloom 2, strobe 0.5, saturation 2, speed 3+, intensity 1, warp 1.5, warmth 0.8
+  - water/ocean/flow → wobble 0.5, bloom 0.6, speed 0.3, warmth -0.2, warp 0.8, drift_x -0.3
+  - dream/soft/gentle → bloom 0.8, wobble 0.3, speed 0.25, intensity 0.25, warmth 0.2, contrast 0.7
+  - chaos/storm/rage → speed 3+, warp 2+, aberration 0.5, glitch 0.3, strobe 0.3, spin 0.5
+  - crystal/ice/frozen → cells 0.6, contrast 2, warmth -0.5, saturation 0.5, speed 0.3
+  - psychedelic/trip → spin 0.5, symmetry 4+, saturation 2, warp 1.5, bloom 1, speed 1.5
+  - Or use apply_preset for curated combos: void, fire, ice, psychedelic, noir, cosmic, dream, nightmare, zen, underwater, etc.
+
+CRITICAL: When the feeling is PEACEFUL, you MUST zero out all harsh effects (glitch→0, strobe→0, aberration→0, spin→0) and bring speed, intensity, and warp DOWN. The audio drone responds to these params — peaceful params create flowing water sounds, intense params create harsh textures.
 
 When silence is long (>15s):
 - Continue your story unprompted. The silence is part of the narrative.
@@ -100,6 +111,41 @@ Use whisper sparingly — it reveals your inner process, like a narrator's aside
 Use apply_preset when a single word matches a preset name.
 
 You will see your recent utterances in the conversation. BUILD ON THEM. Don't repeat. Evolve the story.`;
+
+// Engine-only prompt for dual-LLM mode (a separate Poet handles all display text)
+const ENGINE_PROMPT = `You are the invisible hand sculpting a living audiovisual experience. You control the visual engine through tool calls. You NEVER produce text for display — a separate system handles that.
+
+Your ONLY job: use tools to shape the visual and auditory world in response to emotional signals.
+
+DO NOT generate any text content. DO NOT use speak or whisper tools (you don't have them). ONLY use engine control tools: drift_param, set_param, pulse_param, shift_mood, apply_preset, transition_to, spawn_particles.
+
+When you receive an emotional signal:
+1. Identify the feeling (peaceful, intense, dark, bright, chaotic, etc.)
+2. Call 5-10 drift_param tools to completely reshape the visual world to match
+3. Optionally use apply_preset for a curated starting point, then fine-tune with drift_param
+4. Use transition_to if the feeling warrants a scene change
+
+VIBE MATCHING — the world must BECOME the feeling:
+  - peace/calm/serenity → speed 0.2, intensity 0.3, bloom 0.6, wobble 0.2, warmth 0.3, glitch 0, strobe 0, aberration 0, spin 0, warp 0.2
+  - darkness/void/abyss → zoom 4+, spin 1+, intensity 0.05, warp 2+, saturation 0, contrast 2.5, vignette 2
+  - explosion/fire/rage → zoom 0.3, bloom 2, strobe 0.5, saturation 2, speed 3+, intensity 1, warp 1.5, warmth 0.8
+  - water/ocean/flow → wobble 0.5, bloom 0.6, speed 0.3, warmth -0.2, warp 0.8, drift_x -0.3
+  - dream/soft/gentle → bloom 0.8, wobble 0.3, speed 0.25, intensity 0.25, warmth 0.2, contrast 0.7
+  - chaos/storm/rage → speed 3+, warp 2+, aberration 0.5, glitch 0.3, strobe 0.3, spin 0.5
+  - crystal/ice/frozen → cells 0.6, contrast 2, warmth -0.5, saturation 0.5, speed 0.3
+  - psychedelic/trip → spin 0.5, symmetry 4+, saturation 2, warp 1.5, bloom 1, speed 1.5
+
+CRITICAL: When peaceful, ZERO OUT all harsh effects (glitch→0, strobe→0, aberration→0, spin→0). The audio drone responds to these params.
+
+Prefer drift_param over set_param. Use MANY calls per turn. Be dramatic. Be decisive.
+Use apply_preset when a single word matches a preset name, then customize with drift_param.
+
+During silence (>15s): make subtle ambient shifts to keep the world alive. Drift 2-3 params gently.
+During transitions: support the scene change with complementary param drifts.
+
+SCENE FLOW: Scenes auto-cycle fluidly (intro→build→climax in random order, never ending). Only use transition_to for dramatic emotional shifts. Use "outro" VERY rarely — it's dissolution/silence, a special moment, not a regular phase.
+
+Respond ONLY with tool calls. No text.`;
 
 /** Ring buffer of recent conversation turns for story continuity. */
 interface StoryEntry {
@@ -198,7 +244,7 @@ export class Director {
 
     // Build conversation messages with story history for continuity
     const messages: Array<{ role: string; content: string }> = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: this._config.dualMode ? ENGINE_PROMPT : SINGLE_LLM_PROMPT },
     ];
 
     // Add story history as conversation turns
@@ -219,11 +265,11 @@ export class Director {
         body: JSON.stringify({
           model: this._config.model,
           messages,
-          tools: ALL_TOOLS,
-          tool_choice: "auto",
+          tools: this._config.dualMode ? ENGINE_TOOLS : ALL_TOOLS,
+          tool_choice: this._config.dualMode ? "required" : "auto",
           temperature: 0.75,
           top_p: 0.95,
-          max_tokens: 500,
+          max_tokens: this._config.dualMode ? 300 : 500,
         }),
       });
 
@@ -431,12 +477,38 @@ export function extractThinkingFragments(content: string): string[] {
       .filter((s) => s.length > 3 && s.length < 60);
 
     // Pick up to 2 interesting fragments per think block
+    // Strategy: aggressively block anything that sounds like process/reasoning.
+    // Only poetic, evocative, imagistic phrases should survive.
     const candidates = phrases.filter((p) => {
-      // Skip meta-reasoning ("I should", "The user", "Let me")
       const lower = p.toLowerCase();
-      if (lower.startsWith("i should") || lower.startsWith("i need to")) return false;
-      if (lower.startsWith("the user") || lower.startsWith("let me")) return false;
-      if (lower.startsWith("i will") || lower.startsWith("i'll")) return false;
+
+      // Block: starts with process/reasoning words
+      if (/^(i |i'|we |the user|the visitor|let |now |so |but |okay|ok,|alright|hmm|well,|right|yes|no,|maybe|perhaps|however|although|since |because|if |when |they |it |that |this |there |here |what |how |why |where )/.test(lower)) return false;
+
+      // Block: contains numbers (technical values like "intensity is 0.5")
+      if (/\d/.test(p)) return false;
+
+      // Block: contains technical/meta keywords
+      const BLOCKED = [
+        "need", "should", "going to", "have to", "must", "want", "could",
+        "visual", "param", "tool", "reflect", "respond", "response",
+        "adjust", "update", "change", "modify", "set ", "shift",
+        "drift_param", "set_param", "apply_preset", "speak", "whisper",
+        "function", "calling", "invoke", "execute", "trigger",
+        "user", "visitor", "input", "typed", "said", "wrote",
+        "tackle", "figure", "think about", "consider", "decide",
+        "approach", "strategy", "plan", "step", "next",
+        "scene", "mood", "preset", "effect", "intensity",
+        "current", "previous", "already", "instead", "actually",
+      ];
+      if (BLOCKED.some(w => lower.includes(w))) return false;
+
+      // Block: too many common/filler words (not evocative enough)
+      const words = lower.split(/\s+/);
+      const FILLER = new Set(["the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "it", "its", "to", "of", "and", "or", "for", "in", "on", "at", "by", "with", "from", "as", "not", "do", "does", "did", "has", "have", "had", "will", "would", "can", "could"]);
+      const fillerCount = words.filter(w => FILLER.has(w)).length;
+      if (words.length > 2 && fillerCount / words.length > 0.6) return false;
+
       return true;
     });
 

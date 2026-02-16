@@ -106,10 +106,9 @@ export class TextParticleSystem {
   /**
    * Show a themed scene title. Picks a random evocative name from the scene's
    * theme and spawns it as letter-by-letter reveal with scene-specific styling.
-   * Only fires once per scene transition (deduped by sceneId).
+   * Caller is responsible for dedup (main.ts tracks scene transitions).
    */
   showSceneTitle(sceneId: string, canvasW: number, canvasH: number): void {
-    if (sceneId === this._lastTitleScene) return;
     this._lastTitleScene = sceneId;
 
     const theme = SCENE_THEMES[sceneId];

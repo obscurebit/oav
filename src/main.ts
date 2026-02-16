@@ -1,4 +1,6 @@
 import { Clock, ParameterStore, Timeline, Input, InputReactor } from "./engine";
+import { DebugOverlay } from "./debug-overlay";
+import type { DebugFrame } from "./debug-overlay";
 import {
   Renderer,
   SceneRegistry,
@@ -9,8 +11,8 @@ import {
 } from "./renderer";
 import { Audio } from "./audio";
 import { TextParticleSystem, TextOverlay, WordInput } from "./overlay";
-import { Director, AmbientVoice, ToolBridge } from "./llm";
-import type { DirectorContext, ToolCall } from "./llm";
+import { Director, AmbientVoice, ToolBridge, Poet } from "./llm";
+import type { DirectorContext, ToolCall, PoetContext, PoetDirective, PoetStyle } from "./llm";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2");
@@ -74,47 +76,167 @@ function buildDirectorContext(userWords: string | null): DirectorContext {
 // In dev, use the Vite proxy (/api/llm) to avoid CORS.
 // Only override if VITE_LLM_BASE_URL is explicitly set to a non-NVIDIA URL (e.g. local model).
 const useProxy = !baseUrl || baseUrl.includes("nvidia.com");
+const poetModel = import.meta.env.VITE_POET_MODEL as string | undefined;
+
+// Dual-LLM mode: Director (nemotron, tool-calling) + Poet (llama-4-scout, words only)
 const director = apiKey
   ? new Director({
       apiKey,
+      dualMode: true,
       ...(useProxy ? {} : { apiUrl: `${baseUrl}/chat/completions` }),
       ...(model ? { model } : {}),
     })
   : null;
 
+const poet = apiKey
+  ? new Poet({
+      apiKey,
+      ...(useProxy ? {} : { apiUrl: `${baseUrl}/chat/completions` }),
+      ...(poetModel ? { model: poetModel } : {}),
+    })
+  : null;
+
 const ambientVoice = new AmbientVoice(5, 12);
+
+// --- Debug overlay (toggle with F2) ---
+const debug = new DebugOverlay();
+
+/**
+ * Calculate magnitude of Director's tool calls (0-1).
+ * Higher magnitude = more dramatic change = more dramatic Poet response.
+ */
+function calculateMagnitude(toolCalls: ToolCall[]): number {
+  let mag = 0;
+  for (const tc of toolCalls) {
+    const name = tc.function.name;
+    if (name === "transition_to") {
+      mag += 1.0;
+    } else if (name === "apply_preset") {
+      mag += 0.7;
+    } else if (name === "shift_mood") {
+      mag += 0.5;
+    } else if (name === "drift_param" || name === "set_param") {
+      // Each param change contributes a small amount
+      try {
+        const args = JSON.parse(tc.function.arguments);
+        const target = Number(args.target ?? args.value ?? 0);
+        const current = params.get(String(args.name ?? ""));
+        const diff = Math.abs(target - current);
+        mag += Math.min(diff * 0.5, 0.15); // cap per-param contribution
+      } catch { mag += 0.05; }
+    } else if (name === "pulse_param") {
+      mag += 0.1;
+    } else if (name === "spawn_particles") {
+      mag += 0.3;
+    }
+  }
+  return Math.min(mag, 1.0);
+}
+
+/** Map magnitude to a Poet style. */
+function magnitudeToStyle(magnitude: number, hasUserWords: boolean): PoetStyle {
+  // User input always gets at least an echo
+  if (hasUserWords && magnitude >= 0.3) return "echo";
+  if (hasUserWords) return "voice";
+  // Ambient cycles
+  if (magnitude >= 0.8) return "title";
+  if (magnitude >= 0.6) return "echo";
+  if (magnitude >= 0.3) return "voice";
+  if (magnitude >= 0.1) return "whisper";
+  return "silence";
+}
+
+/** Build context for the Poet based on current state + directive. */
+function buildPoetContext(userWords: string | null, directive: PoetDirective): PoetContext {
+  const transition = timeline.getTransitionState(clock.elapsed);
+  const { mood } = detectMood();
+  return {
+    sceneId: transition?.current.sceneId ?? "none",
+    moodName: mood.name,
+    moodEnergy: Math.min(1, (params.get("speed") / 3 + params.get("intensity") + params.get("strobe") * 2 + params.get("glitch") * 2) / 3),
+    moodWarmth: params.get("warmth"),
+    userWords,
+    silenceDuration: clock.elapsed - lastUserInteraction,
+    elapsed: clock.elapsed,
+    directive,
+  };
+}
+
+// Wire up the Poet to display words as particles
+if (poet) {
+  poet.onWords((words, kind) => {
+    if (kind === "whisper") {
+      particles.addWhisper(words, canvas.width, canvas.height);
+    } else {
+      particles.addVoiceRevealed(words, canvas.width, canvas.height, kind);
+    }
+    debug.log("POET", `${kind}: "${words}"`);
+  });
+}
 
 if (director) {
   director.onResult((result) => {
     awaitingLLM = false;
 
+    // Log raw content to debug overlay (never displayed to user in dual mode)
+    if (result.content) {
+      debug.log("LLM", result.content.slice(0, 500));
+    }
+
     // Classify response and fire visual feedback
     const responseType = classifyResponse(result.toolCalls);
     if (responseType === "affirm") {
       flashAffirm();
-      console.log("[Director] ✓ affirmed user input");
+      debug.log("LLM", `response: AFFIRM`);
     } else if (responseType === "deflect") {
       flashDeflect();
-      console.log("[Director] ○ deflected / ambient response");
+      debug.log("LLM", `response: DEFLECT`);
     }
-    // Clear the phrase tracker after processing
+
+    const savedPhrase = lastUserPhrase;
     lastUserPhrase = null;
 
     // Execute tool calls against the engine
+    const actionDescriptions: string[] = [];
     if (result.toolCalls.length > 0) {
       const outcomes = toolBridge.execute(result.toolCalls);
-      console.log("[Director] tools:", outcomes);
+      for (let i = 0; i < result.toolCalls.length; i++) {
+        const tc = result.toolCalls[i];
+        const name = tc.function.name;
+        const args = tc.function.arguments;
+        if (name === "speak" || name === "whisper") {
+          // In dual mode these shouldn't happen, but handle gracefully
+          debug.log("SPEAK", `${name}(${args})`);
+        } else if (name === "apply_preset") {
+          debug.log("PRESET", `${args} → ${outcomes[i]}`);
+          actionDescriptions.push(`applied ${args}`);
+        } else {
+          debug.log("TOOL", `${name}(${args}) → ${outcomes[i]}`);
+          actionDescriptions.push(`${name}(${args})`);
+        }
+      }
     }
 
-    // Surface thinking fragments as whisper particles
-    for (const fragment of result.thinkingFragments) {
-      particles.addWhisper(fragment, canvas.width, canvas.height);
+    // Calculate magnitude of what the Director just did
+    const magnitude = calculateMagnitude(result.toolCalls);
+    const style = magnitudeToStyle(magnitude, !!savedPhrase);
+    const actionSummary = actionDescriptions.length > 0
+      ? actionDescriptions.slice(0, 5).join(", ")
+      : null;
+
+    const directive: PoetDirective = { magnitude, style, actionSummary };
+    debug.log("LLM", `magnitude: ${magnitude.toFixed(2)} → style: ${style}`);
+
+    // Only trigger the Poet if the magnitude warrants words
+    if (poet && poet.enabled && style !== "silence") {
+      poet.speak(buildPoetContext(savedPhrase, directive));
     }
   });
 } else {
   // Ambient fallback — poetic fragments emerge letter by letter, like the world dreaming
   ambientVoice.onWords((words) => {
     particles.addVoiceRevealed(words, canvas.width, canvas.height, "voice");
+    debug.log("SPEAK", `ambient: "${words}"`);
   });
 }
 
@@ -171,6 +293,7 @@ function flashDeflect(): void {
 // --- Auto-themed reactions: keystroke/click behavior adapts to current visual state ---
 
 interface MoodReaction {
+  name: string;
   keystroke: { pop: number; pulse: number; params?: Record<string, { target: number; dur: number }> };
   click:     { pop: number; pulse: number; params?: Record<string, { target: number; dur: number }> };
   /** Param conditions: each [param, minValue] pair must be met for this mood to score. */
@@ -179,42 +302,42 @@ interface MoodReaction {
 
 const MOOD_REACTIONS: MoodReaction[] = [
   // Explosive / fireworks — high bloom + strobe or high speed + intensity
-  { signature: [["bloom", 0.8], ["strobe", 0.2]],
+  { name: "explosive", signature: [["bloom", 0.8], ["strobe", 0.2]],
     keystroke: { pop: 0.6, pulse: 0.4, params: { bloom: { target: 1.5, dur: 0.3 }, strobe: { target: 0.3, dur: 0.15 } }},
     click:     { pop: 1.0, pulse: 1.0, params: { bloom: { target: 2.0, dur: 0.5 }, strobe: { target: 0.6, dur: 0.3 }, warp: { target: 1.5, dur: 0.6 } }},
   },
   // Chaotic / glitchy — high glitch or aberration
-  { signature: [["glitch", 0.3], ["aberration", 0.3]],
+  { name: "chaotic", signature: [["glitch", 0.3], ["aberration", 0.3]],
     keystroke: { pop: 0.5, pulse: 0.3, params: { glitch: { target: 0.5, dur: 0.2 }, aberration: { target: 0.5, dur: 0.2 } }},
     click:     { pop: 0.8, pulse: 0.7, params: { glitch: { target: 0.8, dur: 0.4 }, invert: { target: 0.5, dur: 0.3 }, aberration: { target: 0.8, dur: 0.4 } }},
   },
   // Stormy / intense — high speed + warp
-  { signature: [["speed", 2.0], ["warp", 1.0]],
+  { name: "stormy", signature: [["speed", 2.0], ["warp", 1.0]],
     keystroke: { pop: 0.4, pulse: 0.3, params: { aberration: { target: 0.3, dur: 0.2 }, warp: { target: 1.5, dur: 0.3 } }},
     click:     { pop: 0.8, pulse: 0.8, params: { strobe: { target: 0.4, dur: 0.3 }, aberration: { target: 0.5, dur: 0.4 }, speed: { target: 3.0, dur: 0.5 } }},
   },
   // Psychedelic — high spin or symmetry + saturation
-  { signature: [["spin", 0.3], ["saturation", 1.3]],
+  { name: "psychedelic", signature: [["spin", 0.3], ["saturation", 1.3]],
     keystroke: { pop: 0.3, pulse: 0.2, params: { spin: { target: 0.5, dur: 0.3 }, saturation: { target: 1.8, dur: 0.3 } }},
     click:     { pop: 0.6, pulse: 0.6, params: { symmetry: { target: 6, dur: 0.5 }, spin: { target: 1.0, dur: 0.5 }, warp: { target: 1.5, dur: 0.5 } }},
   },
   // Crystalline — high cells or symmetry + contrast
-  { signature: [["cells", 0.4], ["contrast", 1.5]],
+  { name: "crystalline", signature: [["cells", 0.4], ["contrast", 1.5]],
     keystroke: { pop: 0.4, pulse: 0.2, params: { cells: { target: 0.6, dur: 0.3 }, bloom: { target: 0.5, dur: 0.3 } }},
     click:     { pop: 0.7, pulse: 0.5, params: { cells: { target: 0.8, dur: 0.5 }, symmetry: { target: 8, dur: 0.5 }, contrast: { target: 2.0, dur: 0.4 } }},
   },
   // Watery — high wobble + bloom
-  { signature: [["wobble", 0.3], ["bloom", 0.4]],
+  { name: "watery", signature: [["wobble", 0.3], ["bloom", 0.4]],
     keystroke: { pop: 0.2, pulse: 0.15, params: { wobble: { target: 0.5, dur: 0.4 } }},
     click:     { pop: 0.4, pulse: 0.3, params: { wobble: { target: 0.8, dur: 0.6 }, bloom: { target: 0.8, dur: 0.5 } }},
   },
   // Volcanic — high ridge + warmth + warp
-  { signature: [["ridge", 0.4], ["warmth", 0.4]],
+  { name: "volcanic", signature: [["ridge", 0.4], ["warmth", 0.4]],
     keystroke: { pop: 0.5, pulse: 0.3, params: { ridge: { target: 0.6, dur: 0.3 }, warmth: { target: 0.8, dur: 0.3 } }},
     click:     { pop: 0.9, pulse: 0.8, params: { warp: { target: 2.0, dur: 0.5 }, ridge: { target: 0.8, dur: 0.5 }, bloom: { target: 1.0, dur: 0.4 } }},
   },
   // Bright / energetic — high intensity + speed (generic catch-all for active states)
-  { signature: [["intensity", 0.7], ["speed", 1.5]],
+  { name: "energetic", signature: [["intensity", 0.7], ["speed", 1.5]],
     keystroke: { pop: 0.4, pulse: 0.25, params: { bloom: { target: 0.8, dur: 0.3 } }},
     click:     { pop: 0.7, pulse: 0.6, params: { bloom: { target: 1.2, dur: 0.5 }, saturation: { target: 1.5, dur: 0.4 } }},
   },
@@ -222,6 +345,7 @@ const MOOD_REACTIONS: MoodReaction[] = [
 
 // Default subtle reaction when no mood matches strongly
 const DEFAULT_REACTION: MoodReaction = {
+  name: "neutral",
   signature: [],
   keystroke: { pop: 0.15, pulse: 0.08 },
   click:     { pop: 0.3, pulse: 0.3 },
@@ -254,7 +378,14 @@ function detectMood(): { mood: MoodReaction; confidence: number } {
 /** Apply a mood reaction (keystroke or click), scaled by confidence. */
 function applyMoodReaction(reaction: MoodReaction["keystroke"] | MoodReaction["click"], confidence: number): void {
   const scale = 0.3 + confidence * 0.7; // Even weak matches get 30% effect
-  audio.playPop(reaction.pop * scale);
+  // Derive energy from current params so pop sound matches the vibe
+  const energy = Math.min(1, (
+    params.get("speed") / 3 +
+    params.get("intensity") +
+    params.get("strobe") * 2 +
+    params.get("glitch") * 2
+  ) / 3);
+  audio.playPop(reaction.pop * scale, energy);
   params.set("pulse", Math.min(params.get("pulse") + reaction.pulse * scale, 1.0));
   if (reaction.params) {
     for (const [name, { target, dur }] of Object.entries(reaction.params)) {
@@ -290,8 +421,9 @@ const wordInput = new WordInput(particles, {
     // Immediate local reactions — color words, mood words, typing speed
     const reactions = reactor.onPhrase(phrase);
     if (reactions.length > 0) {
-      console.log("[InputReactor]", reactions.join(", "));
+      debug.log("REACT", reactions.join(", "));
     }
+    debug.log("INPUT", `phrase: "${phrase}"`);
 
     if (director && director.enabled) {
       awaitingLLM = true;
@@ -365,32 +497,44 @@ params.define("aberration", 0, 1, 0);        // chromatic aberration
 params.define("glitch", 0, 1, 0);            // digital glitch effect
 params.define("feedback", 0, 1, 0);          // temporal feedback / trails
 
-// --- Infinite timeline: cycles through scenes with varied durations ---
-const SCENE_CYCLE = ["intro", "build", "climax", "outro"];
+// --- Infinite timeline: intro first, then fluid random scene cycling ---
+// Scenes flow organically — never the same scene twice in a row.
+// "outro" is reserved for LLM-triggered dramatic moments, not auto-scheduled.
+const FLOWING_SCENES = ["intro", "build", "climax"];
 let timelineEnd = 0;
+let lastScheduledScene = "";
 
-function extendTimeline(cycles: number = 1): void {
-  for (let c = 0; c < cycles; c++) {
-    for (let i = 0; i < SCENE_CYCLE.length; i++) {
-      const sceneId = SCENE_CYCLE[i];
-      // Vary durations: 20-40s per scene, with climax shorter and outro longer
-      let baseDuration = 25 + Math.random() * 15;
-      if (sceneId === "climax") baseDuration = 18 + Math.random() * 12;
-      if (sceneId === "outro") baseDuration = 25 + Math.random() * 20;
-      if (sceneId === "intro" && timelineEnd === 0) baseDuration = 20 + Math.random() * 10; // first intro shorter
+function extendTimeline(count: number = 4): void {
+  for (let i = 0; i < count; i++) {
+    let sceneId: string;
 
-      const transitionDuration = i === 0 && timelineEnd === 0 ? 0 : 2 + Math.random() * 3;
-      const startTime = timelineEnd;
-      const endTime = startTime + baseDuration;
-
-      timeline.add({ startTime, endTime, sceneId, transitionDuration });
-      timelineEnd = endTime;
+    if (timelineEnd === 0) {
+      // Always start with intro
+      sceneId = "intro";
+    } else {
+      // Pick a random scene that isn't the same as the last one
+      const candidates = FLOWING_SCENES.filter(s => s !== lastScheduledScene);
+      sceneId = candidates[Math.floor(Math.random() * candidates.length)];
     }
+
+    // Varied durations — longer scenes feel more immersive
+    let baseDuration = 25 + Math.random() * 20; // 25-45s
+    if (sceneId === "climax") baseDuration = 18 + Math.random() * 15; // 18-33s (shorter, intense)
+    if (sceneId === "intro" && timelineEnd === 0) baseDuration = 22 + Math.random() * 8; // 22-30s first time
+
+    // Smooth crossfades (3-5s), except the very first scene
+    const transitionDuration = timelineEnd === 0 ? 0 : 3 + Math.random() * 2;
+    const startTime = timelineEnd;
+    const endTime = startTime + baseDuration;
+
+    timeline.add({ startTime, endTime, sceneId, transitionDuration });
+    timelineEnd = endTime;
+    lastScheduledScene = sceneId;
   }
 }
 
-// Seed the first two cycles
-extendTimeline(2);
+// Seed the first batch of scenes
+extendTimeline(4);
 
 // --- Resize handler ---
 function resize() {
@@ -417,6 +561,20 @@ window.addEventListener("keydown", markInteraction, { once: true });
 window.addEventListener("click", markInteraction, { once: true });
 window.addEventListener("mousemove", markInteraction, { once: true });
 
+// --- Debug interface for Playwright tests ---
+(window as unknown as Record<string, unknown>).__OAV__ = {
+  get params() { return params.snapshot(); },
+  get elapsed() { return clock.elapsed; },
+  get particleCount() { return particles.count; },
+  get particles() { return particles.particles.map(p => ({ text: p.text, kind: p.kind, opacity: p.opacity, x: p.x, y: p.y })); },
+  get audioStarted() { return audioStarted; },
+  setParam: (name: string, value: number) => params.set(name, value),
+  driftParam: (name: string, target: number, duration: number) => params.drift(name, target, duration),
+};
+
+// --- Scene transition tracking ---
+let lastActiveSceneId = "";
+
 // --- Main loop ---
 let lastTime = 0;
 
@@ -439,12 +597,34 @@ function frame(now: number) {
   params.set("bass", audio.bass);
   params.set("brightness", audio.brightness);
 
-  // Scene-reactive audio mix + themed scene titles
+  // Derive audio mood from visual params (every frame, but setMood smooths internally)
+  const moodEnergy = Math.min(1, (
+    params.get("speed") / 3 +
+    params.get("intensity") +
+    params.get("strobe") * 2 +
+    params.get("glitch") * 2
+  ) / 3);
+  const moodWarmth = params.get("warmth");
+  const moodTexture = Math.min(1, (
+    params.get("grain") +
+    params.get("glitch") +
+    params.get("aberration") +
+    params.get("warp") / 3
+  ) / 2);
+  audio.setMood(moodEnergy, moodWarmth, moodTexture);
+
+  // Scene-reactive audio mix + detect scene transitions for titles
   const currentTransition = timeline.getTransitionState(clock.elapsed);
   if (currentTransition) {
-    audio.setSceneMix(currentTransition.current.sceneId, currentTransition.current.progress);
-    // Show themed title on scene change
-    particles.showSceneTitle(currentTransition.current.sceneId, canvas.width, canvas.height);
+    const sceneId = currentTransition.current.sceneId;
+    audio.setSceneMix(sceneId, currentTransition.current.progress);
+
+    // Fire themed title when the active scene changes (works with repeating scenes)
+    if (sceneId !== lastActiveSceneId) {
+      lastActiveSceneId = sceneId;
+      debug.log("SCENE", `→ ${sceneId}`);
+      particles.showSceneTitle(sceneId, canvas.width, canvas.height);
+    }
   }
 
   // Decay click pulse
@@ -487,6 +667,27 @@ function frame(now: number) {
     transition,
     overlayTexture: overlay.texture,
   });
+
+  // Update debug overlay (only renders DOM when visible)
+  if (debug.visible) {
+    const { mood: dbgMood, confidence: dbgConf } = detectMood();
+    const dbgFrame: DebugFrame = {
+      elapsed: clock.elapsed,
+      dt,
+      fps: dt > 0 ? 1 / dt : 0,
+      scene: currentTransition?.current.sceneId ?? "?",
+      sceneProgress: currentTransition?.current.progress ?? 0,
+      particleCount: particles.count,
+      audioStarted,
+      moodEnergy,
+      moodWarmth,
+      moodTexture,
+      moodName: dbgMood.name,
+      moodConfidence: dbgConf,
+      params: params.snapshot(),
+    };
+    debug.update(dbgFrame);
+  }
 
   requestAnimationFrame(frame);
 }

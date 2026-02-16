@@ -72,10 +72,12 @@ src/
     __tests__/         # TextParticleSystem tests
   llm/
     index.ts           # Barrel export
-    director.ts        # LLM Director (tool-calling) + AmbientVoice fallback
-    tools.ts           # Tool definitions (3 levels + presets), ALL_PARAM_NAMES (30+ params)
+    director.ts        # LLM Director (engine control via tool-calling) + AmbientVoice fallback
+    poet.ts            # Poet — separate LLM for poetic display text (no tools)
+    tools.ts           # Tool definitions (ALL_TOOLS, ENGINE_TOOLS), ALL_PARAM_NAMES (30+ params)
     tool-bridge.ts     # ToolBridge — executes LLM tool calls against the engine
     __tests__/         # AmbientVoice, ToolBridge, thinking fragment tests
+  debug-overlay.ts     # F2-toggled debug overlay (perf, engine, mood, params, LLM stream)
 ```
 
 ## Architecture Principles
@@ -83,7 +85,9 @@ src/
 2. **Pull model** — No events; consumers read state each frame
 3. **Nothing blocks the render loop** — No awaits, no network calls in the hot path
 4. **Single state flow** — `clock.tick() → timeline.getTransitionState() → renderer.draw()`
-5. **LLM as tool-caller** — Director sends tool definitions to LLM; LLM responds with tool calls at 3 abstraction levels (poetic, parametric, structural). ToolBridge executes them against the engine. Never in render path.
+5. **Dual-LLM architecture** — Director (nemotron, tool-calling) sculpts the engine; Poet (llama-4-scout, text-only) generates display words. Director triggers Poet after executing tool calls. Clean separation: no thinking/tool leakage into display text.
+6. **LLM never in render path** — Both LLM calls are fully async, fire-and-forget from the frame loop.
+7. **Magnitude-driven Poet** — Director's tool calls are scored (0-1 magnitude). Low magnitude = silence (no Poet call). High magnitude = dramatic title. The Poet receives a style directive (silence/whisper/voice/echo/title) that shapes its output.
 
 ## Testing
 ```sh
@@ -138,7 +142,14 @@ npx vite --port 5173
 - [x] noise.glsl expanded — ridged noise, voronoi/cellular, hash functions
 - [x] 9 LLM tools — speak, shift_mood, whisper, set/drift/pulse_param (30 params each), transition_to, spawn_particles, apply_preset
 - [x] 21 named visual presets (noir, vaporwave, psychedelic, fire, ice, cosmic, dream, nightmare, etc.)
-- [x] 104 unit tests passing
+- [x] 119 unit tests passing
+- [x] Dual-LLM architecture — Director (nemotron, engine control) + Poet (llama-4-scout, poetic text)
+- [x] Debug overlay (F2 toggle) — perf stats, engine state, mood, params, LLM/Poet stream log
+- [x] Aggressive thinking fragment filter (blocks process/reasoning, numbers, technical terms)
+- [x] Magnitude calculator — scores Director tool calls (0-1), maps to PoetStyle (silence/whisper/voice/echo/title)
+- [x] PoetDirective — Director→Poet communication includes magnitude, style hint, action summary
+- [x] Infinite portal — no outro in auto-cycle, random scene flow (intro/build/climax), never-ending
+- [x] Scene transition debug logging (SCENE tag in overlay)
 - [ ] WebGPU upgrade path (Phase 2)
 
 ## Gotchas
@@ -151,7 +162,13 @@ npx vite --port 5173
 - LLM API key via `VITE_LLM_API_KEY` env var; without it, AmbientVoice fallback is used
 - LLM base URL via `VITE_LLM_BASE_URL` env var (default: NVIDIA NIM)
 - LLM model override via `VITE_LLM_MODEL` env var (default: nvidia/llama-3.3-nemotron-super-49b-v1.5)
+- Poet model override via `VITE_POET_MODEL` env var (default: meta/llama-4-scout-17b-16e-instruct)
+- Director uses `dualMode: true` — ENGINE_TOOLS only (no speak/whisper), tool_choice "required"
 - Director uses OpenAI-compatible tool calling; falls back to JSON parsing if model doesn't support tools
+- Poet receives PoetDirective (magnitude, style, actionSummary) + mood context, emits pure poetic text (no tools, no JSON)
+- Magnitude calculator scores tool calls: transition_to=1.0, apply_preset=0.7, shift_mood=0.5, drift_param=variable, pulse_param=0.1
+- PoetStyle mapping: <0.1=silence (no Poet call), 0.1-0.3=whisper, 0.3-0.6=voice, 0.6-0.8=echo, ≥0.8=title
+- User input always gets at least voice/echo (never silence)
 - ParameterStore.tick(dt) must be called each frame to advance drifts and pulses
 - Particle kinds: voice, echo, name, transform, whisper, user, title — each with distinct visual style
 - SCENE_THEMES in text-particles.ts defines per-scene title names, fonts, colors
@@ -172,4 +189,8 @@ npx vite --port 5173
 - LLM response classification: affirm (engaged with input) → warm pulse, deflect (ignored) → cool ripple, ambient → no flash
 - apply_preset tool applies curated multi-param combos (21 presets) with optional intensity_scale
 - Preset "reset" drifts all params back to defaults
+- Debug overlay toggled with F2 key — shows perf, engine, mood, params, and color-coded LLM/TOOL/PRESET/POET/SCENE/REACT/INPUT stream
+- Timeline auto-cycles through intro/build/climax in random order (no outro in auto-schedule)
+- Outro scene is LLM-triggered only (rare dramatic moment via transition_to tool)
+- See `docs/adr/ADR-008-dual-llm-event-architecture.md` for full event flow diagrams
 - See `docs/MANIFESTO.md` for the creative vision
