@@ -92,6 +92,134 @@ const whisperTool: ToolDefinition = {
   },
 };
 
+// --- Level 3: Musical (dynamic score generation) ---
+
+const composeMusicTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "compose_music",
+    description: "Generate a dynamic musical phrase that matches the current visual mood and intensity. The LLM can specify mood (peaceful, intense, mysterious, happy, dramatic, neutral) and intensity (0-1) to control the musical character.",
+    parameters: {
+      type: "object",
+      properties: {
+        mood: {
+          type: "string",
+          description: "Musical mood: peaceful, intense, mysterious, happy, dramatic, neutral",
+          enum: ["peaceful", "intense", "mysterious", "happy", "dramatic", "neutral"],
+        },
+        intensity: {
+          type: "number",
+          description: "Musical intensity [0-1] - affects note density and dynamics",
+          minimum: 0,
+          maximum: 1,
+        },
+        duration: {
+          type: "number",
+          description: "Phrase duration in beats [4-32]",
+          minimum: 4,
+          maximum: 32,
+        },
+      },
+      required: ["mood"],
+    },
+  },
+};
+
+const setMusicTempoTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "set_music_tempo",
+    description: "Change the musical tempo in BPM. Affects the speed of the music generation.",
+    parameters: {
+      type: "object",
+      properties: {
+        tempo: {
+          type: "number",
+          description: "Tempo in BPM [60-180]",
+          minimum: 60,
+          maximum: 180,
+        },
+      },
+      required: ["tempo"],
+    },
+  },
+};
+
+const setMusicKeyTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "set_music_key",
+    description: "Change the musical key (C, D, E, F, G, A, B). Affects the tonal center of the music.",
+    parameters: {
+      type: "object",
+      properties: {
+        key: {
+          type: "string",
+          description: "Musical key: C, D, E, F, G, A, B",
+          enum: ["C", "D", "E", "F", "G", "A", "B"],
+        },
+      },
+      required: ["key"],
+    },
+  },
+};
+
+const setMusicMoodTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "set_music_mood",
+    description: "Change the musical mood and harmonic complexity. Affects chord progressions and note choices.",
+    parameters: {
+      type: "object",
+      properties: {
+        mood: {
+          type: "string",
+          description: "Musical mood: peaceful, intense, mysterious, happy, dramatic, neutral",
+          enum: ["peaceful", "intense", "mysterious", "happy", "dramatic", "neutral"],
+        },
+        harmony: {
+          type: "number",
+          description: "Harmonic complexity [0-1] - affects chord richness",
+          minimum: 0,
+          maximum: 1,
+        },
+        complexity: {
+          type: "number",
+          description: "Note density and melodic complexity [0-1]",
+          minimum: 0.1,
+          maximum: 1.0,
+        },
+      },
+      required: ["mood"],
+    },
+  },
+};
+
+const triggerMusicSFXTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "trigger_music_sfx",
+    description: "Trigger a musical sound effect based on simulation events. Available types: beat, transition, explosion, glitch, ambient.",
+    parameters: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          description: "SFX type: beat, transition, explosion, glitch, ambient",
+          enum: ["beat", "transition", "explosion", "glitch", "ambient"],
+        },
+        intensity: {
+          type: "number",
+          description: "SFX intensity [0-1]",
+          minimum: 0,
+          maximum: 1,
+        },
+      },
+      required: ["type"],
+    },
+  },
+};
+
 // --- All controllable parameter names ---
 export const ALL_PARAM_NAMES = [
   // Core
@@ -227,7 +355,7 @@ const pulseParamTool: ToolDefinition = {
   },
 };
 
-// --- Level 3: Structural (low-level, scene control) ---
+// --- Level 3: Musical (dynamic score generation) ---
 
 const transitionToTool: ToolDefinition = {
   type: "function",
@@ -447,6 +575,12 @@ export const ALL_TOOLS: ToolDefinition[] = [
   // Level 3: Structural
   transitionToTool,
   spawnParticlesTool,
+  // Level 3: Musical (dynamic score generation)
+  composeMusicTool,
+  setMusicTempoTool,
+  setMusicKeyTool,
+  setMusicMoodTool,
+  triggerMusicSFXTool,
   // Level 3+: GPU effects
   fireworkTool,
   sparkleTool,
@@ -463,7 +597,13 @@ export const ENGINE_TOOLS: ToolDefinition[] = [
   pulseParamTool,
   transitionToTool,
   spawnParticlesTool,
-  // GPU effects
+  // Level 3: Musical (dynamic score generation)
+  composeMusicTool,
+  setMusicTempoTool,
+  setMusicKeyTool,
+  setMusicMoodTool,
+  triggerMusicSFXTool,
+  // Level 3+: GPU effects
   fireworkTool,
   sparkleTool,
   pokeSpringsTool,
