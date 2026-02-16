@@ -387,6 +387,16 @@ export class GPUSpringSystem {
   get nodeCount(): number { return this._nodeCount; }
   get springCount(): number { return this._springs.length; }
 
+  /** Clear the mesh (remove all nodes and springs) */
+  clear(): void {
+    this._nodeCount = 0;
+    this._springs = [];
+    // Clear node data
+    for (let i = 0; i < this._nodeData.length; i++) {
+      this._nodeData[i] = 0;
+    }
+  }
+
   // --- Internal ---
 
   private _buildLineIBO(gl: WebGL2RenderingContext): void {
