@@ -18,7 +18,13 @@ void main() {
   float speed = length(aVelocity);
   vSpeed = speed;
 
-  // Color: base color tinted by velocity (faster = brighter)
-  float brightness = 0.5 + min(speed * 2.0, 0.5);
-  vColor = vec4(uBaseColor * brightness, 0.8); // semi-transparent lines
+  // Jello effect: add some wobble based on time and velocity
+  float wobble = sin(uTime * 3.0 + aPosition.x * 10.0) * 0.01;
+  vec2 wobblePos = aPosition + vec2(wobble, cos(uTime * 2.0 + aPosition.y * 8.0) * 0.01);
+  gl_Position = vec4(wobblePos, 0.0, 1.0);
+
+  // Color: base color with velocity-based brightness and pulsing
+  float brightness = 0.6 + min(speed * 3.0, 0.4);
+  float pulse = sin(uTime * 4.0) * 0.1 + 0.9;
+  vColor = vec4(uBaseColor * brightness * pulse, 0.9); // more opaque, thicker feel
 }

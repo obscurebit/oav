@@ -326,7 +326,7 @@ export class GPUSpringSystem {
   }
 
   /** Render the spring mesh (lines + nodes). */
-  render(): void {
+  render(time: number = 0): void {
     if (this._nodeCount === 0) {
       // Debug: Log that render is being skipped due to no nodes
       // console.log("[Springs] Render skipped: no nodes");
@@ -343,7 +343,10 @@ export class GPUSpringSystem {
       gl.useProgram(this._lineProgram);
       gl.uniform2f(gl.getUniformLocation(this._lineProgram, "uResolution"), gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.uniform3fv(gl.getUniformLocation(this._lineProgram, "uBaseColor"), this.color);
-      gl.uniform1f(gl.getUniformLocation(this._lineProgram, "uTime"), 0);
+      gl.uniform1f(gl.getUniformLocation(this._lineProgram, "uTime"), time);
+
+      // Make lines thicker for jello effect
+      gl.lineWidth(2.0);
 
       gl.bindVertexArray(this._lineVao);
       gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[this._current]);

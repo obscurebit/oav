@@ -54,7 +54,7 @@ export class Renderer {
 
     // Draw GPU particles and springs on top of scene (additive blend)
     if (this.gpuParticles) this.gpuParticles.render();
-    if (this.gpuSprings) this.gpuSprings.render();
+    if (this.gpuSprings) this.gpuSprings.render(state.time);
 
     // Composite text overlay on top
     if (state.overlayTexture) {

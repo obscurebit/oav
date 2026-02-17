@@ -45,7 +45,6 @@ const audio = new Audio();
 const gpuParticles = new GPUParticleSystem(gl);
 const gpuSprings = new GPUSpringSystem(gl);
 renderer.gpuParticles = gpuParticles;
-renderer.gpuSprings = gpuSprings;
 
 // No default mesh - create on demand via presets/LLM
 
