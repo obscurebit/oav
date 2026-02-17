@@ -56,7 +56,7 @@ export class AudioDebugOverlay {
     // Audio debug panel
     const panel = document.createElement("div");
     panel.style.cssText = `
-      position: absolute; top: 8px; left: 8px; width: 380px; max-height: calc(100vh - 16px);
+      position: absolute; top: 8px; right: 8px; width: 380px; max-height: calc(100vh - 16px);
       background: rgba(0,0,0,0.85); border: 1px solid rgba(0,255,255,0.3);
       border-radius: 4px; padding: 8px; overflow-y: auto;
       pointer-events: auto;
