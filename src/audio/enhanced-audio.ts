@@ -214,8 +214,9 @@ export class EnhancedAudio {
   update(): void {
     if (!this._analyser) return;
     
-    this._analyser.getByteFrequencyData(this._freqData);
-    this._analyser.getByteTimeDomainData(this._timeData);
+    // Use any to bypass type checking for WebAudio API
+    (this._analyser as any).getByteFrequencyData(this._freqData);
+    (this._analyser as any).getByteTimeDomainData(this._timeData);
     
     this._analyzeSpectrum();
     this._detectBeat();
@@ -347,8 +348,9 @@ export class EnhancedAudio {
     if (!this._freqData.length || !this._analyser) return;
     
     // Get fresh data
-    this._analyser.getByteFrequencyData(this._freqData);
-    this._analyser.getByteTimeDomainData(this._timeData);
+    // Use any to bypass type checking for WebAudio API
+    (this._analyser as any).getByteFrequencyData(this._freqData);
+    (this._analyser as any).getByteTimeDomainData(this._timeData);
     
     // Calculate frequency bands
     const bassEnd = Math.floor(this._freqData.length * 0.1);
