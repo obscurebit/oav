@@ -13,6 +13,10 @@ export abstract class BaseScene implements Scene {
   private _program: WebGLProgram | null = null;
   private _uniforms: UniformCache | null = null;
   private _vao: WebGLVertexArrayObject | null = null;
+  
+  // Particle timing
+  private _lastParticleTime = 0;
+  private _particleInterval = 2000; // Default: every 2 seconds
 
   init(gl: WebGL2RenderingContext, vao: WebGLVertexArrayObject): void {
     this._program = linkProgram(gl, vertSrc, this.fragSrc);
@@ -83,6 +87,27 @@ export abstract class BaseScene implements Scene {
     gl.bindVertexArray(this._vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
+  }
+
+  /** Trigger particles based on scene state - called by renderer */
+  triggerParticles(state: SceneState): void {
+    const now = state.time * 1000; // Convert to milliseconds
+    
+    // Check if it's time to spawn particles
+    if (now - this._lastParticleTime > this._particleInterval) {
+      this._spawnSceneParticles(state);
+      this._lastParticleTime = now;
+    }
+  }
+
+  /** Override in subclasses to define scene-specific particle behavior */
+  protected _spawnSceneParticles(state: SceneState): void {
+    // Default: no particles
+  }
+
+  /** Set particle spawn interval in milliseconds */
+  protected _setParticleInterval(interval: number): void {
+    this._particleInterval = interval;
   }
 
   dispose(gl: WebGL2RenderingContext): void {

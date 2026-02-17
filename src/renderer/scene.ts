@@ -11,6 +11,7 @@ export interface SceneState {
   localTime: number;
   params: ParameterStore;
   resolution: [number, number];
+  gpuParticles?: any; // GPUParticleSystem for scene-specific particle effects
 }
 
 export interface Scene {
@@ -18,6 +19,8 @@ export interface Scene {
   init(gl: WebGL2RenderingContext, vao: WebGLVertexArrayObject): void;
   draw(gl: WebGL2RenderingContext, state: SceneState): void;
   dispose(gl: WebGL2RenderingContext): void;
+  // Optional particle triggers - called each frame when scene is active
+  triggerParticles?(state: SceneState): void;
 }
 
 export class SceneRegistry {

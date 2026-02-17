@@ -71,6 +71,7 @@ export class Renderer {
       const prevScene = this._registry.get(previous.sceneId);
       if (prevScene) {
         prevScene.draw(gl, this._buildSceneState(previous, state, res));
+        prevScene.triggerParticles?.(this._buildSceneState(previous, state, res));
       }
 
       const curScene = this._registry.get(current.sceneId);
@@ -83,12 +84,14 @@ export class Renderer {
           gl.ONE, gl.ONE_MINUS_SRC_ALPHA
         );
         curScene.draw(gl, this._buildSceneState(current, state, res));
+        curScene.triggerParticles?.(this._buildSceneState(current, state, res));
         gl.disable(gl.BLEND);
       }
     } else {
       const scene = this._registry.get(current.sceneId);
       if (scene) {
         scene.draw(gl, this._buildSceneState(current, state, res));
+        scene.triggerParticles?.(this._buildSceneState(current, state, res));
       }
     }
   }
@@ -123,6 +126,7 @@ export class Renderer {
       localTime: active.localTime,
       params: state.params,
       resolution,
+      gpuParticles: this.gpuParticles,
     };
   }
 
