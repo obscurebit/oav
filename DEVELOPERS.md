@@ -42,14 +42,28 @@ npm run test:watch   # Watch mode
 
 The Vite dev server includes a proxy at `/api/llm` that forwards to the NVIDIA API, solving CORS issues during development.
 
-### Debug Overlay
+### Debug Overlays
 
-Press **F2** to toggle the debug overlay. It shows:
+OAV has two separate debug overlays:
+
+#### Main Debug Overlay (F2)
+Press **F2** to toggle the main debug overlay. It shows:
 - **Performance** — FPS, frame time, particle count
-- **Engine state** — current scene, progress, elapsed time
-- **Mood** — detected mood + confidence
-- **Parameters** — all 30+ visual params with bar graphs
-- **Event stream** — color-coded log of all system events:
+- **Engine state** — current scene, progress, elapsed time, active preset
+- **LLM status** — Director/Poet enabled state, pending requests
+- **Input** — mouse/keyboard interaction, energy, flurry, stillness
+- **Mood** — detected mood + confidence with energy/warmth/texture bars
+- **Parameters** — all 30+ visual params with mini bar graphs
+- **Event stream** — color-coded log of all system events
+
+#### Audio Debug Overlay (F3)
+Press **F3** to toggle the dedicated audio debug overlay. It shows:
+- **Audio Analysis** — amplitude, bass/mid/high frequency bands, beat detection, rhythmic intensity, spectral centroid
+- **Audio Parameters** — 4-layer levels (sub, harmonic, noise, pad), filter frequency/Q, LFO rate/depth, tempo
+- **Audio Effects** — reverb wet level, delay time/feedback, distortion amount, master level
+
+#### Event Stream Tags
+The main overlay shows a color-coded log of all system events:
 
 | Tag | Color | Source |
 |-----|-------|--------|
