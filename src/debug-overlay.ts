@@ -33,30 +33,6 @@ export interface DebugFrame {
   inputFlurry: number;
   inputStillness: number;
   inputPressed: boolean;
-  // Audio analysis
-  amplitude: number;
-  brightness: number;
-  bass: number;
-  mid: number;
-  high: number;
-  beatHit: boolean;
-  rhythmicIntensity: number;
-  spectralCentroid: number;
-  // Audio parameters
-  subLevel: number;
-  harmonicLevel: number;
-  noiseLevel: number;
-  padLevel: number;
-  filterFreq: number;
-  filterRes: number;
-  lfoRate: number;
-  lfoDepth: number;
-  reverbWet: number;
-  delayTime: number;
-  delayFeedback: number;
-  distortion: number;
-  masterLevel: number;
-  tempo: number;
 }
 
 interface LogEntry {
@@ -88,7 +64,6 @@ export class DebugOverlay {
   private _llmEl: HTMLDivElement;
   private _inputEl: HTMLDivElement;
   private _moodEl: HTMLDivElement;
-  private _audioEl: HTMLDivElement;
   private _paramsEl: HTMLDivElement;
   private _logEl: HTMLDivElement;
 
@@ -117,10 +92,9 @@ export class DebugOverlay {
     this._llmEl = this._section("🤖 LLM");
     this._inputEl = this._section("👆 INPUT");
     this._moodEl = this._section("🎭 MOOD");
-    this._audioEl = this._section("🎵 AUDIO");
     this._paramsEl = this._section("🎛 PARAMS");
 
-    left.append(this._perfEl, this._engineEl, this._llmEl, this._inputEl, this._moodEl, this._audioEl, this._paramsEl);
+    left.append(this._perfEl, this._engineEl, this._llmEl, this._inputEl, this._moodEl, this._paramsEl);
 
     // Right column: log stream
     const right = document.createElement("div");
@@ -182,14 +156,6 @@ export class DebugOverlay {
       `FPS: <b>${frame.fps.toFixed(0)}</b>  dt: ${(frame.dt * 1000).toFixed(1)}ms  text: <b>${frame.particleCount}</b>` +
       `\ngpu particles: <b>${frame.gpuParticleCount}</b>  springs: <b>${frame.gpuSpringNodes}</b> nodes / <b>${frame.gpuSprings}</b> links`;
 
-    // Engine
-    const presetLabel = frame.activePreset
-      ? `<span style="color:#fa0">${frame.activePreset}</span>`
-      : `<span style="color:#666">none</span>`;
-    this._body(this._engineEl).innerHTML =
-      `time: <b>${frame.elapsed.toFixed(1)}s</b>  scene: <b>${frame.scene}</b> (${(frame.sceneProgress * 100).toFixed(0)}%)` +
-      `\npreset: ${presetLabel}  audio: ${frame.audioStarted ? "<span style='color:#0f0'>ON</span>" : "<span style='color:#f44'>OFF</span>"}`;
-
     // LLM status
     const dirColor = frame.directorEnabled ? (frame.directorPending ? "#ff0" : "#0f0") : "#f44";
     const dirLabel = frame.directorEnabled ? (frame.directorPending ? "PENDING" : "READY") : `OFF (${frame.directorFailures} fails)`;
@@ -217,15 +183,18 @@ export class DebugOverlay {
       `detected: <b style="color:${confColor}">${frame.moodName}</b> (${(conf * 100).toFixed(0)}%)` +
       `\nenergy: ${this._bar(frame.moodEnergy)}  warmth: ${this._bar(frame.moodWarmth, true)}  texture: ${this._bar(frame.moodTexture)}`;
 
-    // Audio analysis and parameters
-    const beatColor = frame.beatHit ? "#ff0" : "#0f0";
-    const beatLabel = frame.beatHit ? "BEAT" : "....";
-    this._body(this._audioEl).innerHTML =
-      `analysis: amp:${this._bar(frame.amplitude)} bass:${this._bar(frame.bass)} mid:${this._bar(frame.mid)} high:${this._bar(frame.high)}` +
-      `\nbeat: <span style="color:${beatColor}">${beatLabel}</span> rhythmic:${this._bar(frame.rhythmicIntensity)} centroid:${frame.spectralCentroid.toFixed(2)}` +
-      `\nparams: sub:${this._bar(frame.subLevel)} harm:${this._bar(frame.harmonicLevel)} noise:${this._bar(frame.noiseLevel)} pad:${this._bar(frame.padLevel)}` +
-      `\nfilter: ${frame.filterFreq.toFixed(0)}Hz Q:${frame.filterRes.toFixed(1)} LFO:${frame.lfoRate.toFixed(1)}Hz depth:${this._bar(frame.lfoDepth)}` +
-      `\neffects: reverb:${this._bar(frame.reverbWet)} delay:${frame.delayTime.toFixed(2)}s dist:${this._bar(frame.distortion)} master:${this._bar(frame.masterLevel)} tempo:${frame.tempo}BPM`;
+    // Audio status (simplified - use F3 for detailed audio)
+    const audioStatus = frame.audioStarted 
+      ? "<span style='color:#0f0'>ON (F3 for details)</span>" 
+      : "<span style='color:#f44'>OFF</span>";
+
+    // Engine
+    const presetLabel = frame.activePreset
+      ? `<span style="color:#fa0">${frame.activePreset}</span>`
+      : `<span style="color:#666">none</span>`;
+    this._body(this._engineEl).innerHTML =
+      `time: <b>${frame.elapsed.toFixed(1)}s</b>  scene: <b>${frame.scene}</b> (${(frame.sceneProgress * 100).toFixed(0)}%)` +
+      `\npreset: ${presetLabel}  audio: ${audioStatus}`;
 
     // Params — show important ones with mini bars
     const lines: string[] = [];

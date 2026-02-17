@@ -15,6 +15,7 @@ import { Audio } from "./audio";
 import { TextParticleSystem, TextOverlay, WordInput } from "./overlay";
 import { Director, AmbientVoice, ToolBridge, Poet, PRESETS } from "./llm";
 import type { DirectorContext, ToolCall, PoetContext, PoetDirective, PoetStyle } from "./llm";
+import { AudioDebugOverlay } from "./audio-debug-overlay";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2");
@@ -114,8 +115,9 @@ const poet = (apiKey || poetApiKey)
 
 const ambientVoice = new AmbientVoice(5, 12);
 
-// --- Debug overlay (toggle with F2) ---
-const debug = new DebugOverlay();
+// --- Debug overlays ---
+const debug = new DebugOverlay(); // F2 - main debug overlay
+const audioDebug = new AudioDebugOverlay(); // F3 - audio debug overlay
 
 /**
  * Calculate magnitude of Director's tool calls (0-1).
@@ -745,7 +747,6 @@ function frame(now: number) {
 
   // Update debug overlay (only renders DOM when visible)
   if (debug.visible) {
-    const { mood: dbgMood, confidence: dbgConf } = detectMood();
     const dbgFrame: DebugFrame = {
       elapsed: clock.elapsed,
       dt,
@@ -755,50 +756,60 @@ function frame(now: number) {
       activePreset: toolBridge.activeTheme,
       particleCount: particles.count,
       audioStarted,
-      moodEnergy,
-      moodWarmth,
-      moodTexture,
-      moodName: dbgMood.name,
-      moodConfidence: dbgConf,
+      moodEnergy: moodEnergy,
+      moodWarmth: moodWarmth,
+      moodTexture: moodTexture,
+      moodName: detectMood().mood.name,
+      moodConfidence: detectMood().confidence,
       params: params.snapshot(),
-      gpuParticleCount: gpuParticles.count,
+      // GPU systems
+      gpuParticleCount: (gpuParticles as any).count ?? 0,
       gpuSpringNodes: gpuSprings.nodeCount,
       gpuSprings: gpuSprings.springCount,
+      // Director / Poet / Input status
       directorEnabled: director?.enabled ?? false,
-      directorPending: director?.pending ?? false,
-      directorFailures: director?.failures ?? 0,
+      directorPending: awaitingLLM,
+      directorFailures: (director as any)?._consecutiveFailures ?? 0,
       poetEnabled: poet?.enabled ?? false,
       inputEnergy: input.dragEnergy,
       inputHold: input.holdDuration,
       inputFlurry: input.clickFlurry,
       inputStillness: input.stillness,
       inputPressed: input.pressed,
-      // Audio analysis
-      amplitude: audio.amplitude,
-      brightness: audio.brightness,
-      bass: audio.bass,
-      mid: audio.mid,
-      high: audio.high,
-      beatHit: audio.beatHit,
-      rhythmicIntensity: audio.rhythmicIntensity,
-      spectralCentroid: audio.spectralCentroid,
-      // Audio parameters (if enhanced audio is available)
-      subLevel: (audio as any).getParams?.()?.subLevel ?? 0,
-      harmonicLevel: (audio as any).getParams?.()?.harmonicLevel ?? 0,
-      noiseLevel: (audio as any).getParams?.()?.noiseLevel ?? 0,
-      padLevel: (audio as any).getParams?.()?.padLevel ?? 0,
-      filterFreq: (audio as any).getParams?.()?.filterFreq ?? 800,
-      filterRes: (audio as any).getParams?.()?.filterRes ?? 1.5,
-      lfoRate: (audio as any).getParams?.()?.lfoRate ?? 0.5,
-      lfoDepth: (audio as any).getParams?.()?.lfoDepth ?? 0.3,
-      reverbWet: (audio as any).getParams?.()?.reverbWet ?? 0.3,
-      delayTime: (audio as any).getParams?.()?.delayTime ?? 0.3,
-      delayFeedback: (audio as any).getParams?.()?.delayFeedback ?? 0.4,
-      distortion: (audio as any).getParams?.()?.distortion ?? 0.1,
-      masterLevel: (audio as any).getParams?.()?.masterLevel ?? 0.7,
-      tempo: (audio as any).getParams?.()?.tempo ?? 120,
     };
     debug.update(dbgFrame);
+
+    // Audio debug frame (separate overlay)
+    if (audioDebug.visible) {
+      const audioDbgFrame = {
+        // Audio analysis
+        amplitude: audio.amplitude,
+        brightness: audio.brightness,
+        bass: audio.bass,
+        mid: audio.mid,
+        high: audio.high,
+        beatHit: audio.beatHit,
+        rhythmicIntensity: audio.rhythmicIntensity,
+        spectralCentroid: audio.spectralCentroid,
+        // Audio parameters (if enhanced audio is available)
+        subLevel: (audio as any).getParams?.()?.subLevel ?? 0,
+        harmonicLevel: (audio as any).getParams?.()?.harmonicLevel ?? 0,
+        noiseLevel: (audio as any).getParams?.()?.noiseLevel ?? 0,
+        padLevel: (audio as any).getParams?.()?.padLevel ?? 0,
+        filterFreq: (audio as any).getParams?.()?.filterFreq ?? 800,
+        filterRes: (audio as any).getParams?.()?.filterRes ?? 1.5,
+        lfoRate: (audio as any).getParams?.()?.lfoRate ?? 0.5,
+        lfoDepth: (audio as any).getParams?.()?.lfoDepth ?? 0.3,
+        reverbWet: (audio as any).getParams?.()?.reverbWet ?? 0.3,
+        delayTime: (audio as any).getParams?.()?.delayTime ?? 0.3,
+        delayFeedback: (audio as any).getParams?.()?.delayFeedback ?? 0.4,
+        distortion: (audio as any).getParams?.()?.distortion ?? 0.1,
+        masterLevel: (audio as any).getParams?.()?.masterLevel ?? 0.7,
+        tempo: (audio as any).getParams?.()?.tempo ?? 120,
+        audioStarted,
+      };
+      audioDebug.update(audioDbgFrame);
+    }
   }
 
   requestAnimationFrame(frame);
