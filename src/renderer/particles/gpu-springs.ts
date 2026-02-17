@@ -339,13 +339,14 @@ export class GPUSpringSystem {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE); // additive
 
     // Draw spring lines
-    if (this.drawLines && this._lineIbo && this._lineCount > 0) {
+    if (this.drawLines && this._lineVao && this._lineIbo && this._lineCount > 0) {
       gl.useProgram(this._lineProgram);
       gl.uniform2f(gl.getUniformLocation(this._lineProgram, "uResolution"), gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.uniform3fv(gl.getUniformLocation(this._lineProgram, "uBaseColor"), this.color);
       gl.uniform1f(gl.getUniformLocation(this._lineProgram, "uTime"), 0);
 
-      this._bindRenderVAO(this._current);
+      gl.bindVertexArray(this._lineVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[this._current]);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._lineIbo);
       gl.drawElements(gl.LINES, this._lineCount * 2, gl.UNSIGNED_SHORT, 0);
       gl.bindVertexArray(null);
@@ -418,6 +419,34 @@ export class GPUSpringSystem {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._lineIbo);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
     this._lineCount = this._springs.length;
+
+    // Set up line VAO
+    this._setupLineVAO(gl);
+  }
+
+  private _setupLineVAO(gl: WebGL2RenderingContext): void {
+    if (!this._lineVao) {
+      this._lineVao = gl.createVertexArray()!;
+    }
+    gl.bindVertexArray(this._lineVao);
+    
+    // Bind the current vertex buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[this._current]);
+    
+    // Set up attributes for line program (same as render program)
+    const stride = FLOATS_PER_NODE * 4;
+    let offset = 0;
+
+    for (const attr of NODE_ATTRIBS) {
+      const loc = gl.getAttribLocation(this._lineProgram, attr.name);
+      if (loc >= 0) {
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, attr.size, gl.FLOAT, false, stride, offset);
+      }
+      offset += attr.size * 4;
+    }
+
+    gl.bindVertexArray(null);
   }
 
   private _createUpdateProgram(gl: WebGL2RenderingContext): WebGLProgram {
