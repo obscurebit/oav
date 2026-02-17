@@ -12,6 +12,14 @@ export interface SceneState {
   params: ParameterStore;
   resolution: [number, number];
   gpuParticles?: any; // GPUParticleSystem for scene-specific particle effects
+  audio?: {       // Audio analysis data for reactive effects
+    bass: number;
+    amplitude: number;
+    brightness: number;
+    mid: number;
+    high: number;
+    beatHit: boolean;
+  };
 }
 
 export interface Scene {

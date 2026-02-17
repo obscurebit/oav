@@ -15,39 +15,58 @@ export class ClimaxScene extends BaseScene {
   protected _spawnSceneParticles(state: SceneState): void {
     if (!state.gpuParticles) return;
 
-    // Create intense climax particles - explosive, chaotic
+    // Audio-reactive climax particles
+    const bassIntensity = state.audio?.bass ?? 0;
+    const amplitude = state.audio?.amplitude ?? 0;
+    const beatHit = state.audio?.beatHit ?? false;
     const intensity = state.params.get("intensity");
-    const bass = state.params.get("bass");
     
-    // Trigger more particles on bass hits
-    const particleCount = Math.floor(10 + intensity * 20 + bass * 30);
+    // Explosive bursts on beat hits
+    const particleCount = Math.floor(15 + intensity * 25 + bassIntensity * 40);
     
-    // Random explosion center
-    const centerX = (Math.random() - 0.5) * 0.8;
-    const centerY = (Math.random() - 0.5) * 0.8;
+    // Create multiple explosion centers on strong beats
+    const explosionCount = beatHit ? 2 : 1;
+    
+    for (let e = 0; e < explosionCount; e++) {
+      const centerX = (Math.random() - 0.5) * 1.0;
+      const centerY = (Math.random() - 0.5) * 1.0;
 
-    // Create explosion burst
-    state.gpuParticles.enhancedFirework({
-      x: centerX,
-      y: centerY,
-      intensity: 0.8 + intensity * 0.2,
-      color: intensity > 0.7 ? "white" : "red",
-      type: Math.random() > 0.5 ? "chrysanthemum" : "willow"
-    });
+      // Dynamic firework type based on audio
+      const fireworkType = bassIntensity > 0.6 ? "salute" : 
+                          amplitude > 0.5 ? "chrysanthemum" : "willow";
+      
+      // Color shifts with audio intensity
+      const color = bassIntensity > 0.7 ? "white" :
+                   amplitude > 0.6 ? "rainbow" : "red";
 
-    // Add some chaotic sparkles
-    for (let i = 0; i < 5; i++) {
+      state.gpuParticles.enhancedFirework({
+        x: centerX,
+        y: centerY,
+        intensity: 0.8 + intensity * 0.3 + bassIntensity * 0.4,
+        color,
+        type: fireworkType
+      });
+    }
+
+    // Add chaotic sparkles that respond to high frequencies
+    const sparkleCount = Math.floor(5 + amplitude * 10 + (state.audio?.high ?? 0) * 15);
+    for (let i = 0; i < sparkleCount; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const distance = 0.2 + Math.random() * 0.3;
-      const x = centerX + Math.cos(angle) * distance;
-      const y = centerY + Math.sin(angle) * distance;
+      const distance = 0.2 + Math.random() * 0.4;
+      const x = (Math.random() - 0.5) * 1.2 + Math.cos(angle) * distance;
+      const y = (Math.random() - 0.5) * 1.2 + Math.sin(angle) * distance;
+
+      // Dynamic color based on audio spectrum
+      const r = 0.8 + bassIntensity * 0.2;
+      const g = 0.6 + amplitude * 0.4;
+      const b = 0.2 + (state.audio?.high ?? 0) * 0.8;
 
       state.gpuParticles.sparkle(x, y, {
-        count: 3,
-        speed: 0.6 + Math.random() * 0.4,
-        color: [1.0, 0.8, 0.2], // Orange-yellow
-        size: 0.004 + Math.random() * 0.004,
-        life: 1.5 + Math.random(),
+        count: Math.floor(2 + amplitude * 3),
+        speed: 0.5 + Math.random() * 0.5 + bassIntensity * 0.3,
+        color: [r, g, b],
+        size: 0.003 + Math.random() * 0.005 + amplitude * 0.003,
+        life: 1.0 + Math.random() * 2.0 + bassIntensity,
         spread: 0.2
       });
     }

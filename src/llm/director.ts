@@ -30,6 +30,8 @@ export interface DirectorResult {
   thinkingFragments: string[];
   /** Raw content (if any, for fallback). */
   content?: string;
+  /** Raw HTTP response JSON for debugging. */
+  rawResponse?: any;
 }
 
 export interface DirectorConfig {
@@ -302,11 +304,19 @@ export class Director {
       }
 
       const data = await response.json();
+      
+      // Log raw HTTP response JSON for debugging
+      console.log("[Director] Raw HTTP response:", data);
+      
       const message = data.choices?.[0]?.message;
       if (!message) return;
 
       this._consecutiveFailures = 0;
       const result = this._parseResult(message);
+      if (result) {
+        // Include raw HTTP response for debugging
+        result.rawResponse = data;
+      }
       if (result && this._onResult) {
         // Record what the LLM said in story history
         const spokenWords = this._extractSpokenWords(result.toolCalls);

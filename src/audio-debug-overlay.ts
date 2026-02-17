@@ -47,7 +47,7 @@ export class AudioDebugOverlay {
     this._el.id = "audio-debug-overlay";
     this._el.style.cssText = `
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none; z-index: 9998;
+      pointer-events: none; z-index: 10000;
       font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
       font-size: 11px; line-height: 1.4; color: #0ff;
       display: none;
@@ -56,7 +56,7 @@ export class AudioDebugOverlay {
     // Audio debug panel
     const panel = document.createElement("div");
     panel.style.cssText = `
-      position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 380px; max-height: calc(100vh - 16px);
+      position: absolute; bottom: 8px; right: 8px; width: 420px; max-height: calc(100vh - 16px);
       background: rgba(0,0,0,0.85); border: 1px solid rgba(0,255,255,0.3);
       border-radius: 4px; padding: 8px; overflow-y: auto;
       pointer-events: auto;

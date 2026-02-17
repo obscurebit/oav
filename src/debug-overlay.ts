@@ -65,7 +65,9 @@ export class DebugOverlay {
   private _inputEl: HTMLDivElement;
   private _moodEl: HTMLDivElement;
   private _paramsEl: HTMLDivElement;
-  private _logEl: HTMLDivElement;
+  private _logEl: HTMLDivElement; // Stream - comprehensive debug dump
+  private _directorEl: HTMLDivElement; // Director - tool calls, decisions, errors only
+  private _poetEl: HTMLDivElement; // Poet - generated text and style info
 
   constructor() {
     this._el = document.createElement("div");
@@ -96,26 +98,58 @@ export class DebugOverlay {
 
     left.append(this._perfEl, this._engineEl, this._llmEl, this._inputEl, this._moodEl, this._paramsEl);
 
-    // Right column: log stream
+    // Director overlay - tool calls, decisions, errors only
+    const middle = document.createElement("div");
+    middle.style.cssText = `
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 420px; max-height: calc(100vh - 16px);
+      background: rgba(0,0,0,0.85); border: 1px solid rgba(255,165,0,0.5);
+      border-radius: 4px; padding: 8px; overflow-y: auto;
+      pointer-events: auto;
+    `;
+
+    const directorHeader = document.createElement("div");
+    directorHeader.style.cssText = "color: #ffa500; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(255,165,0,0.4); padding-bottom: 4px;";
+    directorHeader.textContent = `🎬 DIRECTOR - (${import.meta.env.VITE_LLM_MODEL || 'nemotron'})`;
+    this._directorEl = document.createElement("div");
+    this._directorEl.style.cssText = "color:#ffa500";
+    middle.append(directorHeader, this._directorEl);
+
+    // Poet overlay - generated text and style information
+    const bottomLeft = document.createElement("div");
+    bottomLeft.style.cssText = `
+      position: absolute; bottom: 8px; left: 8px; width: 420px; height: 150px;
+      background: rgba(0,0,0,0.85); border: 1px solid rgba(255,0,255,0.5);
+      border-radius: 4px; padding: 8px; overflow-y: auto;
+      pointer-events: auto;
+    `;
+
+    const poetHeader = document.createElement("div");
+    poetHeader.style.cssText = "color: #ff00ff; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(255,0,255,0.4); padding-bottom: 4px;";
+    poetHeader.textContent = `🎭 POET - (${import.meta.env.VITE_POET_MODEL || 'llama-4-scout'})`;
+    this._poetEl = document.createElement("div");
+    this._poetEl.style.cssText = "color:#ff00ff";
+    bottomLeft.append(poetHeader, this._poetEl);
+
+    // Stream overlay - comprehensive debug dump with timestamps
     const right = document.createElement("div");
     right.style.cssText = `
-      position: absolute; top: 8px; right: 8px; width: 440px; max-height: calc(100vh - 16px);
-      background: rgba(0,0,0,0.75); border: 1px solid rgba(0,255,0,0.3);
+      position: absolute; top: 8px; right: 8px; width: 480px; max-height: calc(100vh - 16px);
+      background: rgba(0,0,0,0.8); border: 1px solid rgba(0,255,255,0.4);
       border-radius: 4px; padding: 8px; overflow-y: auto;
       pointer-events: auto;
     `;
 
     const logHeader = document.createElement("div");
-    logHeader.style.cssText = "color: #0f0; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,255,0,0.3); padding-bottom: 4px;";
+    logHeader.style.cssText = "color: #00ffff; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,255,255,0.3); padding-bottom: 4px;";
     logHeader.textContent = "📡 STREAM";
     this._logEl = document.createElement("div");
-    this._logEl.style.cssText = "white-space: pre-wrap; word-break: break-word;";
+    this._logEl.style.cssText = "white-space: pre-wrap; word-break: break-word; font-size: 10px;";
     right.append(logHeader, this._logEl);
 
-    this._el.append(left, right);
+    this._el.append(left, middle, bottomLeft, right);
     document.body.appendChild(this._el);
 
-    // Toggle with F2
+    // Toggle with F2 only
     window.addEventListener("keydown", (e) => {
       if (e.key === "F2") {
         e.preventDefault();
@@ -138,12 +172,63 @@ export class DebugOverlay {
     this._el.style.display = this._visible ? "block" : "none";
   }
 
+  
+  
   /** Log an event to the stream panel. */
   log(tag: string, text: string): void {
     const time = this._lastFrame?.elapsed ?? 0;
     this._log.push({ time, tag, text });
     if (this._log.length > MAX_LOG) this._log.shift();
     if (this._visible) this._renderLog();
+  }
+
+  // Specialized logging methods for clearer intent
+
+  /** Director actions - tool calls, decisions, errors */
+  logDirector(action: string, details?: string): void {
+    const text = details ? `${action}: ${details}` : action;
+    this.log("DIRECTOR", text);
+  }
+
+  /** Tool calls to the engine */
+  logTool(toolName: string, args: string, result?: string): void {
+    const text = result ? `${toolName}(${args}) → ${result}` : `${toolName}(${args})`;
+    this.log("TOOL", text);
+  }
+
+  /** Preset applications */
+  logPreset(preset: string, result?: string): void {
+    const text = result ? `${preset} → ${result}` : preset;
+    this.log("PRESET", text);
+  }
+
+  /** Poet output with style */
+  logPoet(kind: "voice" | "echo" | "whisper" | "transform", words: string): void {
+    this.log("POET", `${kind}: "${words}"`);
+  }
+
+  /** LLM responses and magnitude calculations */
+  logLLM(event: string, details?: string): void {
+    const text = details ? `${event}: ${details}` : event;
+    this.log("LLM", text);
+  }
+
+  /** Director LLM responses */
+  logLLMDirector(event: string, details?: string): void {
+    const text = details ? `${event}: ${details}` : event;
+    this.log("DIRECTOR-LLM", text);
+  }
+
+  /** Poet LLM responses */
+  logLLMPoet(event: string, details?: string): void {
+    const text = details ? `${event}: ${details}` : event;
+    this.log("POET-LLM", text);
+  }
+
+  /** Errors and failures */
+  logError(error: string, context?: string): void {
+    const text = context ? `${error} (${context})` : error;
+    this.log("ERROR", text);
   }
 
   /** Called each frame with current state. Only updates DOM if visible. */
@@ -163,6 +248,106 @@ export class DebugOverlay {
     this._body(this._llmEl).innerHTML =
       `director: <b style="color:${dirColor}">${dirLabel}</b>  poet: ${poetLabel}`;
 
+    // Director overlay - show tool calls, decisions, errors, and LLM summaries (no raw HTTP responses, no Poet LLM)
+    const directorLogs = this._log.filter(entry => {
+      // Show tool calls, decisions, errors, and Director LLM summaries but exclude raw HTTP responses and Poet LLM
+      return entry.tag === "TOOL" || 
+             entry.tag === "DIRECTOR" || 
+             entry.tag === "PRESET" ||
+             entry.tag === "ERROR" ||
+             (entry.tag === "LLM" && !entry.text.includes("raw HTTP response")) ||
+             (entry.tag === "DIRECTOR-LLM" && !entry.text.includes("raw HTTP response")) ||
+             entry.tag === "THINK";
+    }).slice(-30); // Show last 30 director-related entries
+    
+    if (directorLogs.length > 0) {
+      const directorContent = directorLogs.map(entry => {
+        let tagColor = "#ffa500";
+        let prefix = "";
+        
+        if (entry.tag === "TOOL") {
+          tagColor = "#0f0";
+          prefix = "🔧";
+        } else if (entry.tag === "PRESET") {
+          tagColor = "#f80";
+          prefix = "🎨";
+        } else if (entry.tag === "ERROR") {
+          tagColor = "#f44";
+          prefix = "❌";
+        } else if (entry.tag === "DIRECTOR") {
+          tagColor = "#ffa500";
+          prefix = "🎬";
+        } else if (entry.tag === "LLM") {
+          tagColor = "#ff0";
+          prefix = "🤖 LLM";
+          const id = `llm-${Math.random().toString(36).substr(2, 9)}`;
+          return `<div style="margin-bottom: 2px"><div style="color:${tagColor};cursor:pointer;font-weight:bold" onclick="var next=this.nextElementSibling;next.style.display=next.style.display==='block'?'none':'block'">${prefix} [${entry.tag}]</div><pre id="${id}" style="display:block;margin:4px 0;padding:4px;background:rgba(255,255,0,0.1);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(entry.text)}</pre></div>`;
+        } else if (entry.tag === "THINK") {
+          tagColor = "#a0a";
+          prefix = "💭 THINK";
+          const id = `think-${Math.random().toString(36).substr(2, 9)}`;
+          return `<div style="margin-bottom: 2px"><div style="color:${tagColor};cursor:pointer;font-weight:bold" onclick="var next=this.nextElementSibling;next.style.display=next.style.display==='block'?'none':'block'">${prefix} [${entry.tag}]</div><pre id="${id}" style="display:block;margin:4px 0;padding:4px;background:rgba(160,160,255,0.1);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(entry.text)}</pre></div>`;
+        }
+        
+        return `<div style="margin-bottom: 2px"><span style="color:${tagColor}">${prefix} [${entry.tag}]</span> ${entry.text}</div>`;
+      }).join('');
+      this._directorEl.innerHTML = directorContent;
+    } else {
+      this._directorEl.innerHTML = "<span style='color:#888'>No director actions...</span>";
+    }
+
+    // Poet overlay - show generated text with style information
+    const poetLogs = this._log.filter(entry => {
+      // Show poet output and style information
+      return entry.tag === "POET" || 
+             entry.tag === "SPEAK" ||
+             (entry.tag === "LLM" && entry.text.includes("style:"));
+    }).slice(-30); // Show last 30 poet-related entries
+    
+    if (poetLogs.length > 0) {
+      const poetContent = poetLogs.map(entry => {
+        let tagColor = "#ff00ff";
+        let prefix = "";
+        let styleInfo = "";
+        
+        if (entry.tag === "POET") {
+          tagColor = "#ff00ff";
+          prefix = "✍️";
+          // Extract the kind from the text (e.g., "voice: \"words\"")
+          const match = entry.text.match(/^(\w+):\s*"(.*)"$/);
+          if (match) {
+            const [, kind, words] = match;
+            styleInfo = `<span style="color:#888;font-style:italic">[${kind}]</span> `;
+            return `<span style="color:${tagColor}">${prefix} [POET]</span> ${styleInfo}"${words}"`;
+          }
+        } else if (entry.tag === "SPEAK") {
+          tagColor = "#ffff00";
+          prefix = "🗣️";
+          // Check if ambient
+          if (entry.text.includes("ambient:")) {
+            const words = entry.text.replace('ambient: "', '').replace('"', '');
+            return `<span style="color:${tagColor}">${prefix} [SPEAK]</span> <span style="color:#888;font-style:italic">[ambient]</span> "${words}"`;
+          }
+        } else if (entry.tag === "LLM" && entry.text.includes("style:")) {
+          tagColor = "#ff0";
+          prefix = "🎭";
+          // Extract magnitude and style
+          const match = entry.text.match(/magnitude: ([\d.]+) → style: (\w+)/);
+          if (match) {
+            const [, magnitude, style] = match;
+            const magColor = parseFloat(magnitude) > 0.7 ? "#f80" : parseFloat(magnitude) > 0.3 ? "#0f0" : "#888";
+            return `<span style="color:${tagColor}">${prefix} [LLM]</span> magnitude: <span style="color:${magColor}">${magnitude}</span> → style: <span style="color:#ff00ff;font-weight:bold">${style}</span>`;
+          }
+        }
+        
+        return `<span style="color:${tagColor}">${prefix} [${entry.tag}]</span> ${entry.text}`;
+      }).join('<br>');
+      this._poetEl.innerHTML = poetContent;
+    } else {
+      this._poetEl.innerHTML = "<span style='color:#888'>No poet output...</span>";
+    }
+
+    
     // Input gestures
     const pressLabel = frame.inputPressed
       ? `<span style="color:#0f0">PRESSED</span> (${frame.inputHold.toFixed(1)}s)`
@@ -176,15 +361,8 @@ export class DebugOverlay {
       `${pressLabel}  energy: ${energyBar}  flurry: ${flurryBar}` +
       `\nstillness: ${stillLabel}`;
 
-    // Mood
-    const conf = frame.moodConfidence;
-    const confColor = conf > 0.7 ? "#0f0" : conf > 0.3 ? "#ff0" : "#888";
-    this._body(this._moodEl).innerHTML =
-      `detected: <b style="color:${confColor}">${frame.moodName}</b> (${(conf * 100).toFixed(0)}%)` +
-      `\nenergy: ${this._bar(frame.moodEnergy)}  warmth: ${this._bar(frame.moodWarmth, true)}  texture: ${this._bar(frame.moodTexture)}`;
-
     // Audio status (simplified - use F3 for detailed audio)
-    const audioStatus = frame.audioStarted 
+    const engineAudioStatus = frame.audioStarted 
       ? "<span style='color:#0f0'>ON (F3 for details)</span>" 
       : "<span style='color:#f44'>OFF</span>";
 
@@ -192,9 +370,10 @@ export class DebugOverlay {
     const presetLabel = frame.activePreset
       ? `<span style="color:#fa0">${frame.activePreset}</span>`
       : `<span style="color:#666">none</span>`;
-    this._body(this._engineEl).innerHTML =
-      `time: <b>${frame.elapsed.toFixed(1)}s</b>  scene: <b>${frame.scene}</b> (${(frame.sceneProgress * 100).toFixed(0)}%)` +
-      `\npreset: ${presetLabel}  audio: ${audioStatus}`;
+    this._body(this._engineEl).innerHTML = `
+      time: <b>${frame.elapsed.toFixed(1)}s</b>  scene: <b>${frame.scene}</b> (${(frame.sceneProgress * 100).toFixed(0)}%)
+      preset: ${presetLabel}  audio: ${engineAudioStatus}
+    `;
 
     // Params — show important ones with mini bars
     const lines: string[] = [];
@@ -209,10 +388,35 @@ export class DebugOverlay {
   }
 
   private _renderLog(): void {
+    // STREAM shows everything as a comprehensive debug dump with timestamps and color-coding
+    // Include raw HTTP responses here (full debug dump) with collapsible LLM entries
     const html = this._log.map(e => {
       const t = e.time.toFixed(1).padStart(6);
       const tagColor = this._tagColor(e.tag);
-      return `<span style="color:#666">${t}s</span> <span style="color:${tagColor};font-weight:bold">[${e.tag}]</span> ${this._escHtml(e.text)}`;
+      const tagBg = this._tagBackground(e.tag);
+      
+      // Add source-specific icons for better visual scanning
+      let icon = "";
+      if (e.tag === "LLM") icon = "🤖";
+      else if (e.tag === "DIRECTOR-LLM") icon = "🎬🤖";
+      else if (e.tag === "POET-LLM") icon = "✍️🤖";
+      else if (e.tag === "TOOL") icon = "🔧";
+      else if (e.tag === "POET") icon = "✍️";
+      else if (e.tag === "SPEAK") icon = "🗣️";
+      else if (e.tag === "SCENE") icon = "🎬";
+      else if (e.tag === "INPUT") icon = "👆";
+      else if (e.tag === "ERROR") icon = "❌";
+      else if (e.tag === "PRESET") icon = "🎨";
+      else if (e.tag === "MOOD") icon = "🎭";
+      else if (e.tag === "REACT") icon = "⚡";
+      
+      // Make LLM entries collapsible for long content
+      if ((e.tag === "LLM" || e.tag === "DIRECTOR-LLM" || e.tag === "POET-LLM") && e.text.length > 100) {
+        const id = `stream-llm-${Math.random().toString(36).substr(2, 9)}`;
+        return `<div style="margin-bottom: 2px"><span style="color:#666">${t}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold;cursor:pointer" onclick="var next=this.parentElement.querySelector('.collapsible-content');next.style.display=next.style.display==='block'?'none':'block'">${icon}[${e.tag}]</span> <span style="color:#666;font-style:italic">${e.text.length > 100 ? e.text.substring(0, 100) + '...' : e.text}</span><pre id="${id}" class="collapsible-content" style="display:none;margin:4px 0;padding:4px;background:rgba(255,255,255,0.05);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(e.text)}</pre></div>`;
+      }
+      
+      return `<span style="color:#666">${t}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold">${icon}[${e.tag}]</span> ${this._escHtml(e.text)}`;
     }).join("\n");
     this._logEl.innerHTML = html;
     this._logEl.scrollTop = this._logEl.scrollHeight;
@@ -231,7 +435,34 @@ export class DebugOverlay {
       case "REACT": return "#0af";
       case "PRESET": return "#f80";
       case "ERROR": return "#f44";
+      case "DIRECTOR": return "#ffa500";
+      case "DIRECTOR-LLM": return "#ff8c00";
+      case "POET-LLM": return "#ff1493";
+      case "DIRECT_PRESET": return "#f80";
+      case "DIRECT_PRESET_RESULT": return "#f08";
       default: return "#888";
+    }
+  }
+
+  private _tagBackground(tag: string): string {
+    switch (tag) {
+      case "LLM": return "rgba(255,0,255,0.2)";
+      case "THINK": return "rgba(160,160,255,0.2)";
+      case "POET": return "rgba(255,153,255,0.2)";
+      case "TOOL": return "rgba(0,255,255,0.2)";
+      case "SPEAK": return "rgba(255,255,0,0.2)";
+      case "SCENE": return "rgba(136,255,136,0.2)";
+      case "MOOD": return "rgba(0,255,0,0.2)";
+      case "INPUT": return "rgba(255,170,0,0.2)";
+      case "REACT": return "rgba(0,170,255,0.2)";
+      case "PRESET": return "rgba(255,136,0,0.2)";
+      case "ERROR": return "rgba(255,68,68,0.3)";
+      case "DIRECTOR": return "rgba(255,165,0,0.2)";
+      case "DIRECTOR-LLM": return "rgba(255,140,0,0.2)";
+      case "POET-LLM": return "rgba(255,20,147,0.2)";
+      case "DIRECT_PRESET": return "rgba(255,136,0,0.2)";
+      case "DIRECT_PRESET_RESULT": return "rgba(255,0,136,0.2)";
+      default: return "transparent";
     }
   }
 

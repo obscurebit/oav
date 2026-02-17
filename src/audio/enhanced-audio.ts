@@ -40,7 +40,7 @@ export interface AudioParams {
 }
 
 export interface SFXParams {
-  type: 'impact' | 'sweep' | 'glitch' | 'riser' | 'explosion' | 'whoosh';
+  type: 'impact' | 'sweep' | 'glitch' | 'riser' | 'explosion' | 'whoosh' | 'kick' | 'snare' | 'hihat' | 'bass' | 'percussion';
   pitch: number;          // Pitch multiplier [0.1, 4]
   duration: number;       // Duration [0.1, 5] s
   volume: number;         // Volume [0, 1]
@@ -98,6 +98,7 @@ export class EnhancedAudio {
   // Beat detection
   private _beatHistory: number[] = [];
   private _lastBeatTime = 0;
+  private _lastDrumTime = 0;
   private _beatThreshold = 0.3;
   
   constructor() {
@@ -208,6 +209,68 @@ export class EnhancedAudio {
     
     this._sfxQueue.push(fullSFX);
     this._processSFXQueue();
+  }
+  
+  /** Trigger a kick drum. */
+  triggerKick(volume = 0.8, pitch = 1): void {
+    this.triggerSFX({ type: 'kick', volume, pitch, duration: 0.2 });
+  }
+  
+  /** Trigger a snare drum. */
+  triggerSnare(volume = 0.6, pitch = 1): void {
+    this.triggerSFX({ type: 'snare', volume, pitch, duration: 0.15 });
+  }
+  
+  /** Trigger a hihat. */
+  triggerHihat(volume = 0.3, pitch = 1): void {
+    this.triggerSFX({ type: 'hihat', volume, pitch, duration: 0.05 });
+  }
+  
+  /** Trigger a bass note. */
+  triggerBass(volume = 0.7, pitch = 1): void {
+    this.triggerSFX({ type: 'bass', volume, pitch, duration: 0.3 });
+  }
+  
+  /** Trigger a drum pattern (basic 4/4 beat). */
+  triggerDrumPattern(pattern: 'basic' | 'dnb' | 'techno' = 'basic', intensity = 0.7): void {
+    const volume = intensity;
+    
+    switch (pattern) {
+      case 'basic':
+        // Kick on 1, 2, 3, 4
+        this.triggerKick(volume);
+        setTimeout(() => this.triggerSnare(volume * 0.6), 250); // Snare on 2 & 4
+        setTimeout(() => this.triggerKick(volume), 500);
+        setTimeout(() => this.triggerSnare(volume * 0.6), 750);
+        setTimeout(() => this.triggerKick(volume), 1000);
+        break;
+        
+      case 'dnb':
+        // Fast DnB pattern
+        this.triggerKick(volume);
+        setTimeout(() => this.triggerHihat(volume * 0.4), 125);
+        setTimeout(() => this.triggerSnare(volume * 0.7), 250);
+        setTimeout(() => this.triggerHihat(volume * 0.4), 375);
+        setTimeout(() => this.triggerKick(volume), 500);
+        setTimeout(() => this.triggerHihat(volume * 0.4), 625);
+        setTimeout(() => this.triggerSnare(volume * 0.7), 750);
+        setTimeout(() => this.triggerHihat(volume * 0.4), 875);
+        setTimeout(() => this.triggerKick(volume), 1000);
+        break;
+        
+      case 'techno':
+        // Techno pattern with off-beat hihats
+        this.triggerKick(volume);
+        setTimeout(() => this.triggerHihat(volume * 0.3), 125);
+        setTimeout(() => this.triggerKick(volume * 0.8), 250);
+        setTimeout(() => this.triggerHihat(volume * 0.3), 375);
+        setTimeout(() => this.triggerSnare(volume * 0.5), 500);
+        setTimeout(() => this.triggerHihat(volume * 0.3), 625);
+        setTimeout(() => this.triggerKick(volume * 0.8), 750);
+        setTimeout(() => this.triggerHihat(volume * 0.3), 875);
+        setTimeout(() => this.triggerKick(volume), 1000);
+        break;
+    }
   }
   
   /** Update analysis data (call each frame). */
@@ -403,6 +466,29 @@ export class EnhancedAudio {
       if (Math.random() < this._params.glitchProb) {
         this.triggerSFX({ type: 'glitch', volume: 0.3, duration: 0.1 });
       }
+      
+      // Trigger ambient drums based on tempo and mood
+      const beatInterval = 60000 / this._params.tempo; // milliseconds per beat
+      if (now - this._lastDrumTime > beatInterval) {
+        this._lastDrumTime = now;
+        
+        // Choose drum based on current audio parameters
+        if (this._params.subLevel > 0.6) {
+          // Heavy bass - trigger kick
+          this.triggerKick(this._params.subLevel * 0.5);
+        } else if (this._params.lfoRate > 3) {
+          // Fast modulation - DnB pattern
+          if (Math.random() < 0.3) {
+            this.triggerDrumPattern('dnb', this.amplitude * 0.4);
+          }
+        } else if (this._params.filterFreq > 1000) {
+          // Bright sound - hihats
+          this.triggerHihat(this._params.noiseLevel * 0.3);
+        } else if (this._params.distortion > 0.3) {
+          // Distorted - aggressive drums
+          this.triggerSnare(this._params.distortion * 0.6);
+        }
+      }
     } else {
       this.beatHit = false;
     }
@@ -444,6 +530,21 @@ export class EnhancedAudio {
         break;
       case 'whoosh':
         source = this._createWhoosh(ctx, sfx);
+        break;
+      case 'kick':
+        source = this._createKick(ctx, sfx);
+        break;
+      case 'snare':
+        source = this._createSnare(ctx, sfx);
+        break;
+      case 'hihat':
+        source = this._createHihat(ctx, sfx);
+        break;
+      case 'bass':
+        source = this._createBass(ctx, sfx);
+        break;
+      case 'percussion':
+        source = this._createPercussion(ctx, sfx);
         break;
       default:
         source = this._createImpact(ctx, sfx);
@@ -575,6 +676,121 @@ export class EnhancedAudio {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(filter);
+    return source;
+  }
+  
+  // Drum and Bass generators
+  private _createKick(ctx: AudioContext, sfx: SFXParams): AudioBufferSourceNode {
+    const duration = sfx.duration;
+    const sampleRate = ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, duration * sampleRate, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      // Kick with pitch envelope and click
+      const pitch = 60 * sfx.pitch * Math.exp(-t * 30); // Fast pitch drop
+      const click = Math.exp(-t * 200) * 0.3; // Click transient
+      const body = Math.sin(2 * Math.PI * pitch * t) * Math.exp(-t * 5);
+      data[i] = (click + body) * sfx.volume;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    return source;
+  }
+  
+  private _createSnare(ctx: AudioContext, sfx: SFXParams): AudioBufferSourceNode {
+    const duration = sfx.duration;
+    const sampleRate = ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, duration * sampleRate, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      // Snare with tone and noise
+      const tone = Math.sin(2 * Math.PI * 200 * sfx.pitch * t) * Math.exp(-t * 2);
+      const noise = (Math.random() - 0.5) * 2 * Math.exp(-t * 0.1);
+      data[i] = (tone * 0.6 + noise * 0.4) * sfx.volume * Math.exp(-t * 0.5);
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    return source;
+  }
+  
+  private _createHihat(ctx: AudioContext, sfx: SFXParams): AudioBufferSourceNode {
+    const duration = Math.min(sfx.duration, 0.1); // Hihats are short
+    const sampleRate = ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, duration * sampleRate, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      // Metallic hihat noise
+      const noise = (Math.random() - 0.5) * 2;
+      const envelope = Math.exp(-t * 50);
+      data[i] = noise * envelope * sfx.volume;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    return source;
+  }
+  
+  private _createBass(ctx: AudioContext, sfx: SFXParams): AudioBufferSourceNode {
+    const duration = sfx.duration;
+    const sampleRate = ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, duration * sampleRate, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      // Deep bass with harmonics
+      const fundamental = 55 * sfx.pitch; // A1
+      const harmonic2 = fundamental * 2;
+      const harmonic3 = fundamental * 3;
+      
+      const wave = (
+        Math.sin(2 * Math.PI * fundamental * t) * 0.5 +
+        Math.sin(2 * Math.PI * harmonic2 * t) * 0.3 +
+        Math.sin(2 * Math.PI * harmonic3 * t) * 0.2
+      );
+      
+      const envelope = Math.exp(-t * 0.5); // Longer sustain
+      data[i] = wave * envelope * sfx.volume;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    return source;
+  }
+  
+  private _createPercussion(ctx: AudioContext, sfx: SFXParams): AudioBufferSourceNode {
+    const duration = sfx.duration;
+    const sampleRate = ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, duration * sampleRate, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < data.length; i++) {
+      const t = i / sampleRate;
+      // Complex percussive sound with multiple frequencies
+      const freq1 = 800 * sfx.pitch;
+      const freq2 = 1200 * sfx.pitch;
+      const freq3 = 1600 * sfx.pitch;
+      
+      const wave = (
+        Math.sin(2 * Math.PI * freq1 * t) * 0.4 +
+        Math.sin(2 * Math.PI * freq2 * t) * 0.3 +
+        Math.sin(2 * Math.PI * freq3 * t) * 0.3
+      );
+      
+      const envelope = Math.exp(-t * 8); // Quick decay
+      data[i] = wave * envelope * sfx.volume;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
     return source;
   }
   

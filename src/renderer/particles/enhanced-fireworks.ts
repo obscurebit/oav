@@ -55,49 +55,86 @@ export class EnhancedFireworks {
   private _createChrysanthemum(config: FireworkConfig): void {
     const colors = this._getFireworkColors(config.color);
     
-    // Stage 1: Launch trail (rising rocket)
-    this._createLaunchTrail(config.x, config.y - 0.3, config.intensity);
+    // Stage 1: Launch trail (rising rocket) - varied launch height
+    const launchHeight = 0.2 + Math.random() * 0.2;
+    this._createLaunchTrail(config.x, config.y - launchHeight, config.intensity);
     
-    // Stage 2: Primary explosion (delayed)
+    // Stage 2: Primary explosion (delayed) - varied timing
     setTimeout(() => {
+      // Varied explosion size and characteristics
+      const particleCount = Math.floor(100 + Math.random() * 100 * config.intensity);
+      const speed = 2.0 + Math.random() * 1.5;
+      const trailLength = 0.6 + Math.random() * 0.6;
+      const gravity = 0.1 + Math.random() * 0.1;
+      
       this._createPrimaryBurst(config.x, config.y, config.intensity, colors, {
-        particleCount: 150,
-        speed: 2.5,
+        particleCount,
+        speed,
         spread: Math.PI * 2,
-        trailLength: 0.8,
-        gravity: 0.15
+        trailLength,
+        gravity,
+        sizeVariation: 0.5 + Math.random() * 0.5,
+        fadeRate: 0.7 + Math.random() * 0.3
       });
       
-      // Stage 3: Secondary sparkle trail
+      // Stage 3: Secondary sparkle trail - varied timing and intensity
       setTimeout(() => {
-        this._createSparkleBurst(config.x, config.y, config.intensity * 0.6, colors);
-      }, 200);
-    }, 600);
+        const sparkleIntensity = 0.4 + Math.random() * 0.4;
+        this._createSparkleBurst(config.x, config.y, config.intensity * sparkleIntensity, colors);
+      }, 150 + Math.random() * 200);
+      
+      // Stage 4: Late glitter effect (sometimes)
+      if (Math.random() < 0.3) {
+        setTimeout(() => {
+          this._createGlitterBurst(config.x, config.y, config.intensity * 0.3, colors);
+        }, 400 + Math.random() * 300);
+      }
+    }, 500 + Math.random() * 200);
   }
   
   /** Willow - long falling trails like willow branches */
   private _createWillow(config: FireworkConfig): void {
     const colors = this._getFireworkColors(config.color);
     
-    // Launch trail
-    this._createLaunchTrail(config.x, config.y - 0.3, config.intensity);
+    // Launch trail - varied height
+    const launchHeight = 0.25 + Math.random() * 0.15;
+    this._createLaunchTrail(config.x, config.y - launchHeight, config.intensity);
     
     setTimeout(() => {
-      // Primary burst with heavy particles that fall
+      // Primary burst with heavy particles that fall - varied characteristics
+      const particleCount = Math.floor(80 + Math.random() * 80 * config.intensity);
+      const speed = 1.2 + Math.random() * 0.8;
+      const trailLength = 0.8 + Math.random() * 0.6;
+      const gravity = 0.2 + Math.random() * 0.15;
+      const size = 0.012 + Math.random() * 0.012;
+      
       this._createPrimaryBurst(config.x, config.y, config.intensity, colors, {
-        particleCount: 120,
-        speed: 1.8,
+        particleCount,
+        speed,
         spread: Math.PI * 2,
-        trailLength: 1.2,
-        gravity: 0.25,
-        size: 0.018
+        trailLength,
+        gravity,
+        size,
+        fadeRate: 0.5 + Math.random() * 0.3,
+        sizeVariation: 0.6
       });
       
-      // Long falling sparkles
+      // Multiple stages of falling sparkles for natural willow effect
       setTimeout(() => {
-        this._createFallingSparkles(config.x, config.y, config.intensity * 0.7, colors);
-      }, 300);
-    }, 800);
+        this._createFallingSparkles(config.x, config.y, config.intensity * 0.6, colors);
+      }, 200 + Math.random() * 200);
+      
+      setTimeout(() => {
+        this._createFallingSparkles(config.x, config.y, config.intensity * 0.4, colors);
+      }, 600 + Math.random() * 300);
+      
+      // Late falling glitter
+      if (Math.random() < 0.4) {
+        setTimeout(() => {
+          this._createGlitterBurst(config.x, config.y, config.intensity * 0.3, colors);
+        }, 1000 + Math.random() * 500);
+      }
+    }, 700 + Math.random() * 300);
   }
   
   /** Palm - vertical burst with falling palm-like trails */
@@ -249,6 +286,27 @@ export class EnhancedFireworks {
         lifeVariance: 0.4,
         size: 0.005,
         sizeVariance: 0.003,
+      });
+    }
+  }
+  
+  /** Create glitter burst effect - fine sparkles with slow fade */
+  private _createGlitterBurst(x: number, y: number, intensity: number, colors: number[][]): void {
+    for (let i = 0; i < 100 * intensity; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.2 + Math.random() * 0.6; // Slower, more delicate
+      
+      this._gpuParticles.emit({
+        x, y,
+        count: 1,
+        speed: speed * intensity,
+        spread: 0,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        colorVariance: 0.2,
+        life: 1.5, // Longer life for glitter
+        lifeVariance: 0.6,
+        size: 0.002, // Smaller, finer particles
+        sizeVariance: 0.002,
       });
     }
   }

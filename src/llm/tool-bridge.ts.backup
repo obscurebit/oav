@@ -21,34 +21,138 @@ export interface ToolBridgeDeps {
 }
 
 /** Named visual presets — curated param combos for distinct visual moods. */
-export const PRESETS: Record<string, Record<string, number>> = {
+export const PRESETS: Record<string, Partial<Record<string, number>>> = {
   noir:        { saturation: 0.15, contrast: 2.2, intensity: 0.4, grain: 0.6, warmth: -0.3, bloom: 0, warp: 0.3 },
-  vaporwave:   { hue: 0.85, saturation: 1.8, bloom: 1.2, pixelate: 0.3, warmth: 0.2, speed: 0.6, aberration: 0.3 },
-  glitch_art:  { glitch: 0.8, aberration: 0.7, edge: 0.6, strobe: 0.3, speed: 2.0, contrast: 1.8 },
-  underwater:  { hue: 0.55, contrast: 0.6, wobble: 0.7, bloom: 0.8, saturation: 0.7, speed: 0.5, warp: 0.8 },
-  fire:        { hue: 0.05, intensity: 0.9, warp: 2.0, ridge: 0.7, bloom: 0.6, warmth: 0.8, speed: 1.5 },
-  ice:         { hue: 0.5, saturation: 0.5, contrast: 2.0, cells: 0.7, warmth: -0.8, bloom: 0.4, speed: 0.4 },
-  psychedelic: { saturation: 2.0, spin: 0.8, symmetry: 6, warp: 1.5, bloom: 1.0, speed: 2.0, hue: 0.8 },
-  minimal:     { intensity: 0.35, warp: 0.1, grain: 0, bloom: 0, glitch: 0, aberration: 0, saturation: 0.8, contrast: 1.0, speed: 0.6 },
-  cosmic:      { hue: 0.75, bloom: 1.5, octaves: 7, zoom: 0.4, intensity: 0.6, warp: 0.8, saturation: 1.3 },
-  industrial:  { saturation: 0.3, ridge: 0.8, grain: 0.5, contrast: 2.0, edge: 0.5, warmth: -0.2, speed: 1.2 },
-  dream:       { speed: 0.3, wobble: 0.5, bloom: 1.2, warmth: 0.4, saturation: 0.8, intensity: 0.5, warp: 0.6 },
-  crystal:     { cells: 0.8, contrast: 2.0, symmetry: 8, hue: 0.6, bloom: 0.5, saturation: 1.2 },
-  organic:     { warp: 2.5, warmth: 0.5, edge: 0, bloom: 0.8, saturation: 1.2, speed: 0.7, noise_scale: 2.0 },
-  digital:     { pixelate: 0.6, edge: 0.7, glitch: 0.4, hue: 0.5, speed: 2.0, contrast: 1.5, saturation: 1.5 },
-  zen:         { hue: 0.6, saturation: 0.7, bloom: 0.4, speed: 0.1, zoom: 1.0, intensity: 0.3, warmth: 0.1, contrast: 1.0, vignette: 0.2, warp: 0.1, spin: 0.05, aberration: 0, noise_scale: 0.5, ridge: 0.1 },
-  storm:       { speed: 3.0, warp: 2.5, strobe: 0.4, aberration: 0.5, intensity: 0.85, contrast: 1.5 },
-  aurora:      { hue: 0.38, bloom: 1.0, wobble: 0.4, saturation: 1.6, warmth: -0.3, speed: 0.6, warp: 0.8 },
-  lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8 },
-  fireworks:   { bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, hue: 0.05, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3 },
+  vaporwave:   { hue: 0.85, saturation: 1.8, bloom: 1.2, pixelate: 0.3, warmth: 0.2, speed: 0.6, aberration: 0.3,
+    // Audio: dreamy, nostalgic
+    subLevel: 0.3, harmonicLevel: 0.5, noiseLevel: 0.2, padLevel: 0.4,
+    filterFreq: 600, lfoRate: 1.5, lfoDepth: 0.2, reverbWet: 0.5, delayTime: 0.4, distortion: 0.0 },
+  glitch_art:  { glitch: 0.8, aberration: 0.7, edge: 0.6, strobe: 0.3, speed: 2.0, contrast: 1.8,
+    // Audio: distorted, glitchy
+    subLevel: 0.6, harmonicLevel: 0.2, noiseLevel: 0.5, padLevel: 0.0,
+    filterFreq: 150, lfoRate: 4.0, lfoDepth: 0.4, reverbWet: 0.1, delayTime: 0.1, distortion: 0.4 },
+  underwater:  { hue: 0.55, contrast: 0.6, wobble: 0.7, bloom: 0.8, saturation: 0.7, speed: 0.5, warp: 0.8,
+    // Audio: underwater, flowing
+    subLevel: 0.4, harmonicLevel: 0.6, noiseLevel: 0.1, padLevel: 0.5,
+    filterFreq: 800, lfoRate: 1.2, lfoDepth: 0.2, reverbWet: 0.6, delayTime: 0.5, distortion: 0.0 },
+  fire:        { hue: 0.05, intensity: 0.9, warp: 2.0, ridge: 0.7, bloom: 0.6, warmth: 0.8, speed: 1.5,
+    // Audio: hot, intense
+    subLevel: 0.8, harmonicLevel: 0.2, noiseLevel: 0.3, padLevel: 0.0,
+    filterFreq: 250, lfoRate: 3.5, lfoDepth: 0.4, reverbWet: 0.1, delayTime: 0.15, distortion: 0.2 },
+  ice:         { hue: 0.5, saturation: 0.5, contrast: 2.0, cells: 0.7, warmth: -0.8, bloom: 0.4, speed: 0.4,
+    // Audio: cold, icy
+    subLevel: 0.2, harmonicLevel: 0.4, noiseLevel: 0.1, padLevel: 0.6,
+    filterFreq: 700, lfoRate: 1.0, lfoDepth: 0.15, reverbWet: 0.4, delayTime: 0.4, distortion: 0.0 },
+  psychedelic: { saturation: 2.0, spin: 0.8, symmetry: 6, warp: 1.5, bloom: 1.0, speed: 2.0, hue: 0.8,
+    // Audio: trippy, resonant
+    subLevel: 0.3, harmonicLevel: 0.7, noiseLevel: 0.2, padLevel: 0.4,
+    filterFreq: 800, lfoRate: 2.0, lfoDepth: 0.3, reverbWet: 0.4, delayTime: 0.3, distortion: 0.0 },
+  minimal:     { intensity: 0.35, warp: 0.1, grain: 0, bloom: 0, glitch: 0, aberration: 0, saturation: 0.8, contrast: 1.0, speed: 0.6,
+    // Audio: clean, minimal
+    subLevel: 0.2, harmonicLevel: 0.3, noiseLevel: 0.0, padLevel: 0.1,
+    filterFreq: 400, lfoRate: 0.5, lfoDepth: 0.1, reverbWet: 0.1, delayTime: 0.2, distortion: 0.0 },
+  cosmic:      { hue: 0.75, bloom: 1.5, octaves: 7, zoom: 0.4, intensity: 0.6, warp: 0.8, saturation: 1.3,
+    // Audio: spacious, ethereal
+    subLevel: 0.4, harmonicLevel: 0.6, noiseLevel: 0.1, padLevel: 0.6,
+    filterFreq: 1200, lfoRate: 1.5, lfoDepth: 0.2, reverbWet: 0.6, delayTime: 0.4, distortion: 0.0 },
+  industrial:  { saturation: 0.3, ridge: 0.8, grain: 0.5, contrast: 2.0, edge: 0.5, warmth: -0.2, speed: 1.2,
+    // Audio: mechanical, harsh
+    subLevel: 0.6, harmonicLevel: 0.4, noiseLevel: 0.4, padLevel: 0.1,
+    filterFreq: 200, lfoRate: 3.0, lfoDepth: 0.4, reverbWet: 0.2, delayTime: 0.1, distortion: 0.3 },
+  dream:       { speed: 0.3, wobble: 0.5, bloom: 1.2, warmth: 0.4, saturation: 0.8, intensity: 0.5, warp: 0.6,
+    // Audio: soft, gentle
+    subLevel: 0.2, harmonicLevel: 0.5, noiseLevel: 0.05, padLevel: 0.8,
+    filterFreq: 600, lfoRate: 0.8, lfoDepth: 0.15, reverbWet: 0.5, delayTime: 0.6, distortion: 0.0 },
+  nightmare:   { invert: 0.7, glitch: 0.6, speed: 2.5, aberration: 0.8, hue: 0.0, intensity: 0.8, contrast: 2.0,
+    // Audio: distorted, aggressive
+    subLevel: 0.8, harmonicLevel: 0.2, noiseLevel: 0.6, padLevel: 0.0,
+    filterFreq: 150, lfoRate: 5.0, lfoDepth: 0.6, reverbWet: 0.1, delayTime: 0.05, distortion: 0.5 },
+  crystal:     { cells: 0.8, contrast: 2.0, symmetry: 8, hue: 0.6, bloom: 0.5, saturation: 1.2,
+    // Audio: clear, bright
+    subLevel: 0.3, harmonicLevel: 0.8, noiseLevel: 0.0, padLevel: 0.3,
+    filterFreq: 2000, lfoRate: 1.2, lfoDepth: 0.1, reverbWet: 0.3, delayTime: 0.3, distortion: 0.0 },
+  organic:     { warp: 2.5, warmth: 0.5, edge: 0, bloom: 0.8, saturation: 1.2, speed: 0.7, noise_scale: 2.0,
+    // Audio: natural, flowing
+    subLevel: 0.4, harmonicLevel: 0.6, noiseLevel: 0.3, padLevel: 0.5,
+    filterFreq: 800, lfoRate: 1.0, lfoDepth: 0.25, reverbWet: 0.4, delayTime: 0.4, distortion: 0.0 },
+  digital:     { pixelate: 0.6, edge: 0.7, glitch: 0.4, hue: 0.5, speed: 2.0, contrast: 1.5, saturation: 1.5,
+    // Audio: electronic, sharp
+    subLevel: 0.5, harmonicLevel: 0.7, noiseLevel: 0.2, padLevel: 0.0,
+    filterFreq: 1500, lfoRate: 4.0, lfoDepth: 0.3, reverbWet: 0.2, delayTime: 0.2, distortion: 0.2 },
+  zen:         { speed: 0.25, intensity: 0.35, warp: 0.2, bloom: 0.3, warmth: 0.3, grain: 0, glitch: 0, aberration: 0, strobe: 0,
+    // Audio: peaceful, calm
+    subLevel: 0.1, harmonicLevel: 0.3, noiseLevel: 0.0, padLevel: 0.6,
+    filterFreq: 500, lfoRate: 0.3, lfoDepth: 0.05, reverbWet: 0.3, delayTime: 0.8, distortion: 0.0 },
+  storm:       { speed: 3.0, warp: 2.5, strobe: 0.4, aberration: 0.5, intensity: 0.85, contrast: 1.5,
+    // Audio: turbulent, intense
+    subLevel: 0.7, harmonicLevel: 0.3, noiseLevel: 0.5, padLevel: 0.0,
+    filterFreq: 300, lfoRate: 6.0, lfoDepth: 0.5, reverbWet: 0.1, delayTime: 0.1, distortion: 0.4 },
+  aurora:      { hue: 0.38, bloom: 1.0, wobble: 0.4, saturation: 1.6, warmth: -0.3, speed: 0.6, warp: 0.8,
+    // Audio: atmospheric, flowing
+    subLevel: 0.3, harmonicLevel: 0.7, noiseLevel: 0.1, padLevel: 0.4,
+    filterFreq: 1000, lfoRate: 2.5, lfoDepth: 0.2, reverbWet: 0.6, delayTime: 0.5, distortion: 0.0 },
+  lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8,
+    // Audio: hot, intense
+    subLevel: 0.8, harmonicLevel: 0.2, noiseLevel: 0.3, padLevel: 0.0,
+    filterFreq: 250, lfoRate: 3.5, lfoDepth: 0.4, reverbWet: 0.1, delayTime: 0.15, distortion: 0.2 },
+  fireworks:   { bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, hue: 0.05, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3,
+    // Audio: celebratory, bright
+    subLevel: 0.5, harmonicLevel: 0.6, noiseLevel: 0.1, padLevel: 0.3,
+    filterFreq: 800, lfoRate: 1.8, lfoDepth: 0.1, reverbWet: 0.3, delayTime: 0.2, distortion: 0.0 },
+  jello:       { bloom: 0.3, saturation: 0.8, speed: 0.6, zoom: 0.8, intensity: 0.5, warmth: 0.2, contrast: 1.3, vignette: 0.8, hue: 0.4, warp: 0.1, spin: 0, aberration: 0, noise_scale: 2, ridge: 0 },
+    // Audio: bouncy, playful
+    subLevel: 0.3, harmonicLevel: 0.4, noiseLevel: 0.2, padLevel: 0.5,
+    filterFreq: 600, lfoRate: 2.0, lfoDepth: 0.3, reverbWet: 0.2, delayTime: 0.3, distortion: 0.0 },
+  cloth:       { bloom: 0.2, saturation: 0.6, speed: 0.3, zoom: 1.0, intensity: 0.4, warmth: 0.1, contrast: 1.2, vignette: 0.6, hue: 0.55, warp: 0.05, spin: 0, aberration: 0, noise_scale: 1.5, ridge: 0 },
+    // Audio: soft, flowing
+    subLevel: 0.2, harmonicLevel: 0.5, noiseLevel: 0.1, padLevel: 0.7,
+    filterFreq: 700, lfoRate: 1.0, lfoDepth: 0.15, reverbWet: 0.4, delayTime: 0.4, distortion: 0.0 },
   sparkle_field: { bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, hue: 0.6, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0 },
+    // Audio: magical, twinkling
+    subLevel: 0.4, harmonicLevel: 0.8, noiseLevel: 0.0, padLevel: 0.6,
+    filterFreq: 1500, lfoRate: 3.0, lfoDepth: 0.2, reverbWet: 0.5, delayTime: 0.3, distortion: 0.0 },
   electric_storm: { bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, hue: 0.6, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3 },
+    // Audio: sharp, electric
+    subLevel: 0.6, harmonicLevel: 0.4, noiseLevel: 0.4, padLevel: 0.0,
+    filterFreq: 1200, lfoRate: 8.0, lfoDepth: 0.6, reverbWet: 0.1, delayTime: 0.1, distortion: 0.6 },
   lightning:    { bloom: 1.5, strobe: 0.9, saturation: 0.8, speed: 4.0, zoom: 0.4, intensity: 1.0, warmth: -0.4, contrast: 2.5, vignette: 0.1, hue: 0.55, warp: 0.2, spin: 0.1, aberration: 0.8, noise_scale: 8, ridge: 0.6, glitch: 0.4 },
-  nightmare:   { hue: 0.0, saturation: 0.8, bloom: 0.3, speed: 1.5, zoom: 1.1, intensity: 0.9, warmth: -0.5, contrast: 2.0, vignette: 0.8, warp: 1.2, spin: 0.5, aberration: 0.3, noise_scale: 5, ridge: 0.6, glitch: 0.4 },
+    // Audio: electrical, intense
+    subLevel: 0.7, harmonicLevel: 0.3, noiseLevel: 0.6, padLevel: 0.0,
+    filterFreq: 1000, lfoRate: 10.0, lfoDepth: 0.7, reverbWet: 0.1, delayTime: 0.05, distortion: 0.8 },
   
   // Word presets - dramatic scene titles with matching visuals
-  emergence: { bloom: 0.4, saturation: 0.7, speed: 0.3, zoom: 1.2, intensity: 0.6, warmth: 0.1, contrast: 1.3, vignette: 0.6, hue: 0.58, warp: 0.2, spin: 0, aberration: 0, noise_scale: 1.8, ridge: 0 },
-  the_void_stirs: { bloom: 0.2, saturation: 0.4, speed: 0.2, zoom: 1.5, intensity: 0.3, warmth: -0.1, contrast: 1.1, vignette: 0.8, hue: 0.6, warp: 0.3, spin: -0.1, aberration: 0.1, noise_scale: 1.5, ridge: 0 },
+  emergence: { bloom: 0.4, saturation: 0.7, speed: 0.3, zoom: 1.2, intensity: 0.6, warmth: 0.1, contrast: 1.3, vignette: 0.6, hue: 0.58, warp: 0.2, spin: 0, aberration: 0, noise_scale: 1.8, ridge: 0,
+    // Audio: epic, cinematic
+    subLevel: 0.5, harmonicLevel: 0.6, noiseLevel: 0.1, padLevel: 0.4,
+    filterFreq: 1000, lfoRate: 2.0, lfoDepth: 0.2, reverbWet: 0.5, delayTime: 0.4, distortion: 0.0 },
+  genesis: { bloom: 0.6, saturation: 0.9, speed: 0.4, zoom: 1.0, intensity: 0.7, warmth: 0.2, contrast: 1.4, vignette: 0.5, hue: 0.55, warp: 0.15, spin: 0.1, aberration: 0.05, noise_scale: 2, ridge: 0.1,
+    // Audio: bright, uplifting
+    subLevel: 0.4, harmonicLevel: 0.7, noiseLevel: 0.1, padLevel: 0.5,
+    filterFreq: 1200, lfoRate: 1.5, lfoDepth: 0.2, reverbWet: 0.6, delayTime: 0.4, distortion: 0.0 },
+  the_void_stirs: { bloom: 0.2, saturation: 0.4, speed: 0.2, zoom: 1.5, intensity: 0.3, warmth: -0.1, contrast: 1.1, vignette: 0.8, hue: 0.6, warp: 0.3, spin: -0.1, aberration: 0.1, noise_scale: 1.5, ridge: 0,
+    // Audio: dark, ominous
+    subLevel: 0.6, harmonicLevel: 0.3, noiseLevel: 0.4, padLevel: 0.1,
+    filterFreq: 200, lfoRate: 2.0, lfoDepth: 0.3, reverbWet: 0.3, delayTime: 0.2, distortion: 0.2 },
+  first_light: { bloom: 1.0, saturation: 0.8, speed: 0.5, zoom: 0.8, intensity: 0.8, warmth: 0.3, contrast: 1.6, vignette: 0.4, hue: 0.52, warp: 0.1, spin: 0.2, aberration: 0, noise_scale: 2.5, ridge: 0.2,
+    // Audio: bright, hopeful
+    subLevel: 0.5, harmonicLevel: 0.7, noiseLevel: 0.1, padLevel: 0.5,
+    filterFreq: 1500, lfoRate: 2.0, lfoDepth: 0.2, reverbWet: 0.6, delayTime: 0.4, distortion: 0.0 },
+  awakening: { bloom: 0.7, saturation: 1.0, speed: 0.6, zoom: 0.9, intensity: 0.75, warmth: 0.25, contrast: 1.5, vignette: 0.5, hue: 0.48, warp: 0.25, spin: 0.15, aberration: 0.08, noise_scale: 3, ridge: 0.15,
+    // Audio: uplifting, inspiring
+    subLevel: 0.5, harmonicLevel: 0.7, noiseLevel: 0.1, padLevel: 0.5,
+    filterFreq: 1200, lfoRate: 2.0, lfoDepth: 0.2, reverbWet: 0.6, delayTime: 0.4, distortion: 0.0 },
+  from_nothing: { bloom: 0.1, saturation: 0.3, speed: 0.15, zoom: 2.0, intensity: 0.2, warmth: -0.2, contrast: 1.0, vignette: 1.0, hue: 0.62, warp: 0.4, spin: -0.2, aberration: 0.15, noise_scale: 1, ridge: 0,
+    // Audio: empty, desolate
+    subLevel: 0.3, harmonicLevel: 0.2, noiseLevel: 0.2, padLevel: 0.1,
+    filterFreq: 200, lfoRate: 1.0, lfoDepth: 0.2, reverbWet: 0.3, delayTime: 0.2, distortion: 0.1 },
+  signal: { bloom: 0.5, strobe: 0.3, saturation: 0.9, speed: 1.2, zoom: 1.1, intensity: 0.7, warmth: 0, contrast: 1.8, vignette: 0.3, hue: 0.45, warp: 0.2, spin: 0.3, aberration: 0.2, noise_scale: 4, ridge: 0.1, glitch: 0.1,
+    // Audio: futuristic, technological
+    subLevel: 0.5, harmonicLevel: 0.6, noiseLevel: 0.2, padLevel: 0.3,
+    filterFreq: 1000, lfoRate: 2.5, lfoDepth: 0.2, reverbWet: 0.4, delayTime: 0.3, distortion: 0.1 },
+  origin: { bloom: 0.3, saturation: 0.6, speed: 0.35, zoom: 1.3, intensity: 0.65, warmth: 0.15, contrast: 1.35, vignette: 0.55, hue: 0.5, warp: 0.18, spin: 0.05, aberration: 0.03, noise_scale: 2.2, ridge: 0.05,
+    // Audio: natural, earthy
+    subLevel: 0.4, harmonicLevel: 0.5, noiseLevel: 0.2, padLevel: 0.4,
+    filterFreq: 800, lfoRate: 1.5, lfoDepth: 0.2, reverbWet: 0.4, delayTime: 0.3, distortion: 0.0 },
   first_light: { bloom: 1.0, saturation: 0.8, speed: 0.5, zoom: 0.8, intensity: 0.8, warmth: 0.3, contrast: 1.6, vignette: 0.4, hue: 0.52, warp: 0.1, spin: 0.2, aberration: 0, noise_scale: 2.5, ridge: 0.2 },
   awakening: { bloom: 0.7, saturation: 1.0, speed: 0.6, zoom: 0.9, intensity: 0.75, warmth: 0.25, contrast: 1.5, vignette: 0.5, hue: 0.48, warp: 0.25, spin: 0.15, aberration: 0.08, noise_scale: 3, ridge: 0.15 },
   from_nothing: { bloom: 0.1, saturation: 0.3, speed: 0.15, zoom: 2.0, intensity: 0.2, warmth: -0.2, contrast: 1.0, vignette: 1.0, hue: 0.62, warp: 0.4, spin: -0.2, aberration: 0.15, noise_scale: 1, ridge: 0 },
@@ -399,87 +503,25 @@ export class ToolBridge {
     if (typeof window !== 'undefined') {
       const oav = (window as any).__OAV__;
       if (preset === "fireworks" && oav?.gpuParticles) {
-      // 4th of July fireworks show - unpredictable and natural!
-      const colors = ["red", "blue", "gold", "green", "purple", "white", "orange", "pink", "rainbow"];
-      const types = ["chrysanthemum", "willow", "palm", "crossette", "salute"];
-      
-      const createRandomFirework = () => {
-        // Random position across the sky
-        const x = (Math.random() - 0.5) * 1.6;
-        const y = 0.2 + Math.random() * 0.6; // Upper half of screen
-        
-        // Random size and intensity
-        const intensity = 0.5 + Math.random() * 1.2; // 0.5 to 1.7
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const type = types[Math.floor(Math.random() * types.length)];
-        
-        oav.gpuParticles.enhancedFirework({ x, y, intensity, color, type });
-        
-        // Sometimes add a quick follow-up burst
-        if (Math.random() < 0.3) {
-          setTimeout(() => {
-            const followUpX = x + (Math.random() - 0.5) * 0.3;
-            const followUpY = y + (Math.random() - 0.5) * 0.3;
-            const followUpIntensity = intensity * 0.7;
-            const followUpColor = colors[Math.floor(Math.random() * colors.length)];
-            const followUpType = types[Math.floor(Math.random() * types.length)];
-            
-            oav.gpuParticles.enhancedFirework({
-              x: followUpX,
-              y: followUpY,
-              intensity: followUpIntensity,
-              color: followUpColor,
-              type: followUpType
-            });
-          }, 100 + Math.random() * 400);
-        }
-      };
-      
-      // Create initial burst of fireworks
-      const initialBurst = () => {
-        const burstCount = 3 + Math.floor(Math.random() * 4); // 3-7 fireworks
-        for (let i = 0; i < burstCount; i++) {
-          setTimeout(() => createRandomFirework(), i * (200 + Math.random() * 300));
-        }
-      };
-      
-      // Continuous random fireworks
-      const continuousShow = () => {
-        // Random intervals between fireworks (200ms to 1.5s)
-        const nextInterval = 200 + Math.random() * 1300;
-        
-        // Sometimes launch multiple at once
-        if (Math.random() < 0.2) {
-          // Double burst
-          createRandomFirework();
-          setTimeout(() => createRandomFirework(), 50 + Math.random() * 150);
-        } else {
-          createRandomFirework();
-        }
-        
-        // Schedule next firework
-        setTimeout(continuousShow, nextInterval);
-      };
-      
-      // Start the show
-      initialBurst();
-      setTimeout(continuousShow, 1000 + Math.random() * 1000);
-      
-      // Stop after 30 seconds of chaos
-      setTimeout(() => {
-        // Grand finale - multiple big fireworks
-        for (let i = 0; i < 5; i++) {
-          setTimeout(() => {
-            oav.gpuParticles.enhancedFirework({
-              x: (Math.random() - 0.5) * 1.2,
-              y: 0.3 + Math.random() * 0.4,
-              intensity: 1.2 + Math.random() * 0.5,
-              color: "rainbow",
-              type: "chrysanthemum"
-            });
-          }, i * 100);
-        }
-      }, 28000);
+      // Enhanced fireworks with different types and colors
+      oav.gpuParticles.enhancedFirework({
+        x: -0.5, y: 0.2,
+        intensity: 0.8,
+        color: "gold",
+        type: "chrysanthemum"
+      });
+      setTimeout(() => oav.gpuParticles.enhancedFirework({
+        x: 0.3, y: -0.1,
+        intensity: 1.0,
+        color: "red",
+        type: "willow"
+      }), 400);
+      setTimeout(() => oav.gpuParticles.enhancedFirework({
+        x: 0.0, y: 0.4,
+        intensity: 0.6,
+        color: "blue",
+        type: "palm"
+      }), 800);
     } else if (preset === "jello" && oav?.gpuSprings) {
       // Enhanced jello mesh with paper-inspired parameters
       oav.gpuSprings.createGrid({
@@ -523,78 +565,10 @@ export class ToolBridge {
         }
       };
       createSparkles();
-      // Continue sparkles every 2 seconds
+      // Continue sparkling every 2 seconds
       const interval = setInterval(createSparkles, 2000);
       // Clear interval after 30 seconds
       setTimeout(() => clearInterval(interval), 30000);
-    } else if (preset === "aurora" && oav?.gpuParticles) {
-      // Northern lights effect with flowing particles
-      const createAuroraParticle = () => {
-        const x = (Math.random() - 0.5) * 2.0;
-        const y = -0.8 + Math.random() * 1.6; // Top to bottom
-        oav.gpuParticles.sparkle(x, y, Math.floor(Math.random() * 8 + 3));
-      };
-      
-      // Initial burst
-      for (let i = 0; i < 20; i++) {
-        createAuroraParticle();
-      }
-      
-      // Continuous flow
-      const interval = setInterval(createAuroraParticle, 300);
-      setTimeout(() => clearInterval(interval), 25000);
-    } else if (preset === "dream" && oav?.gpuParticles) {
-      // Ethereal dream particles floating upward
-      const createDreamParticle = () => {
-        const x = (Math.random() - 0.5) * 1.5;
-        const y = -0.9; // Start from bottom
-        oav.gpuParticles.sparkle(x, y, Math.floor(Math.random() * 6 + 2));
-      };
-      
-      // Gentle continuous flow
-      const interval = setInterval(createDreamParticle, 500);
-      setTimeout(() => clearInterval(interval), 30000);
-    } else if (preset === "cosmic" && oav?.gpuParticles) {
-      // Cosmic sparkles with occasional bursts
-      const cosmicSparkle = () => {
-        const x = (Math.random() - 0.5) * 1.6;
-        const y = (Math.random() - 0.5) * 1.6;
-        oav.gpuParticles.sparkle(x, y, Math.floor(Math.random() * 8 + 3));
-      };
-      
-      // Gentle sparkles every 3 seconds
-      const interval = setInterval(cosmicSparkle, 3000);
-      setTimeout(() => clearInterval(interval), 45000);
-    } else if (preset === "crystal" && oav?.gpuParticles) {
-      // Crystalline sparkles with geometric patterns
-      const createCrystalPattern = () => {
-        // Create a hexagonal pattern of sparkles
-        const centerX = (Math.random() - 0.5) * 1.0;
-        const centerY = (Math.random() - 0.5) * 1.0;
-        const radius = 0.2;
-        
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2;
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          oav.gpuParticles.sparkle(x, y, 5);
-        }
-      };
-      
-      createCrystalPattern();
-      const interval = setInterval(createCrystalPattern, 2000);
-      setTimeout(() => clearInterval(interval), 20000);
-    } else if (preset === "organic" && oav?.gpuParticles) {
-      // Organic flowing particles
-      const createOrganicFlow = () => {
-        const x = (Math.random() - 0.5) * 1.8;
-        const y = (Math.random() - 0.5) * 1.8;
-        oav.gpuParticles.sparkle(x, y, Math.floor(Math.random() * 10 + 5));
-      };
-      
-      // Continuous organic flow
-      const interval = setInterval(createOrganicFlow, 400);
-      setTimeout(() => clearInterval(interval), 35000);
     } else if (preset === "electric_storm" && oav?.gpuParticles && oav?.gpuSprings) {
       // Configure springs for storm effect
       oav.gpuSprings.createGrid({
@@ -710,67 +684,41 @@ export class ToolBridge {
       }
     }
 
-    let count = 0;
+    // Separate visual and audio parameters
+    const visualParams: Partial<Record<string, number>> = {};
+    const audioParams: Partial<Record<string, number>> = {};
+    
+    const audioParamNames = ['subLevel', 'harmonicLevel', 'noiseLevel', 'padLevel', 'filterFreq', 'filterRes', 'lfoRate', 'lfoDepth', 'reverbWet', 'delayTime', 'delayFeedback', 'distortion'];
+    
     for (const [name, target] of Object.entries(values)) {
-      if (!p.has(name)) continue;
-      // Scale the difference from current value
+      if (audioParamNames.includes(name)) {
+        audioParams[name] = target;
+      } else if (p.has(name)) {
+        visualParams[name] = target;
+      }
+    }
+    
+    // Apply visual parameters
+    let visualCount = 0;
+    for (const [name, target] of Object.entries(visualParams)) {
       const current = p.get(name);
       const scaled = current + (target - current) * scale;
       p.drift(name, scaled, duration);
-      count++;
+      visualCount++;
     }
-
-    // Apply audio parameters from separate audio presets
+    
+    // Apply audio parameters
     const audioPreset = AUDIO_PRESETS[preset];
     if (typeof window !== 'undefined' && audioPreset) {
       const oav = (window as any).__OAV__;
       if (oav?.audio) {
         oav.audio.setParams(audioPreset);
-        
-        // Trigger appropriate drum pattern for preset
-        switch (preset) {
-          case 'fireworks':
-          case 'lightning':
-            oav.audio.triggerDrumPattern('dnb', 0.6);
-            break;
-          case 'industrial':
-          case 'storm':
-            oav.audio.triggerKick(0.8);
-            setTimeout(() => oav.audio.triggerSnare(0.6), 200);
-            break;
-          case 'psychedelic':
-          case 'cosmic':
-            oav.audio.triggerDrumPattern('techno', 0.5);
-            break;
-          case 'vaporwave':
-          case 'dream':
-            oav.audio.triggerKick(0.4);
-            setTimeout(() => oav.audio.triggerHihat(0.3), 250);
-            break;
-          case 'glitch_art':
-            oav.audio.triggerDrumPattern('dnb', 0.7);
-            break;
-          case 'minimal':
-          case 'zen':
-            oav.audio.triggerHihat(0.2);
-            break;
-          case 'noir':
-            oav.audio.triggerKick(0.5);
-            break;
-          case 'aurora':
-          case 'crystal':
-            oav.audio.triggerSnare(0.4);
-            setTimeout(() => oav.audio.triggerHihat(0.3), 100);
-            break;
-          default:
-            oav.audio.triggerKick(0.5);
-        }
       }
     }
 
     // Fire a pulse so the user sees the moment
     p.set("pulse", Math.min(scale, 1.0));
 
-    return `applied preset "${preset}" (${count} visual params, ${audioPreset ? Object.keys(audioPreset).length : 0} audio params, scale=${scale.toFixed(1)})`;
+    return `applied preset "${preset}" (${visualCount} visual params, ${audioPreset ? Object.keys(audioPreset).length : 0} audio params, scale=${scale.toFixed(1)})`;
   }
 }

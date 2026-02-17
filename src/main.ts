@@ -41,6 +41,9 @@ const renderer = new Renderer(gl, registry);
 const input = new Input(canvas);
 const audio = new EnhancedAudio();
 
+// Connect audio to renderer for reactive effects
+renderer.audio = audio;
+
 // --- GPU particle & spring systems ---
 const gpuParticles = new GPUParticleSystem(gl);
 const gpuSprings = new GPUSpringSystem(gl);
@@ -181,13 +184,18 @@ function buildPoetContext(userWords: string | null, directive: PoetDirective): P
 
 // Wire up the Poet to display words as particles
 if (poet) {
-  poet.onWords((words, kind) => {
+  poet.onWords((words, kind, rawResponse) => {
     if (kind === "whisper") {
       particles.addWhisper(words, canvas.width, canvas.height);
     } else {
       particles.addVoiceRevealed(words, canvas.width, canvas.height, kind);
     }
-    debug.log("POET", `${kind}: "${words}"`);
+    debug.logPoet(kind, words);
+    
+    // Log raw Poet HTTP response for debugging
+    if (rawResponse) {
+      debug.logLLMPoet("raw HTTP response", JSON.stringify(rawResponse, null, 2));
+    }
   });
 }
 
@@ -197,17 +205,22 @@ if (director) {
 
     // Log raw content to debug overlay (never displayed to user in dual mode)
     if (result.content) {
-      debug.log("LLM", result.content.slice(0, 500));
+      debug.logLLM("raw response", result.content);
+    }
+    
+    // Log raw HTTP response JSON for debugging
+    if (result.rawResponse) {
+      debug.logLLMDirector("raw HTTP response", JSON.stringify(result.rawResponse, null, 2));
     }
 
     // Classify response and fire visual feedback
     const responseType = classifyResponse(result.toolCalls);
     if (responseType === "affirm") {
       flashAffirm();
-      debug.log("LLM", `response: AFFIRM`);
+      debug.logLLM("response", "AFFIRM");
     } else if (responseType === "deflect") {
       flashDeflect();
-      debug.log("LLM", `response: DEFLECT`);
+      debug.logLLM("response", "DEFLECT");
     }
 
     const savedPhrase = lastUserPhrase;
@@ -225,10 +238,10 @@ if (director) {
           // In dual mode these shouldn't happen, but handle gracefully
           debug.log("SPEAK", `${name}(${args})`);
         } else if (name === "apply_preset") {
-          debug.log("PRESET", `${args} → ${outcomes[i]}`);
+          debug.logPreset(args, outcomes[i]);
           actionDescriptions.push(`applied ${args}`);
         } else {
-          debug.log("TOOL", `${name}(${args}) → ${outcomes[i]}`);
+          debug.logTool(name, args, outcomes[i]);
           actionDescriptions.push(`${name}(${args})`);
         }
       }
@@ -242,7 +255,7 @@ if (director) {
       : null;
 
     const directive: PoetDirective = { magnitude, style, actionSummary };
-    debug.log("LLM", `magnitude: ${magnitude.toFixed(2)} → style: ${style}`);
+    debug.logLLM(`magnitude: ${magnitude.toFixed(2)} → style: ${style}`);
 
     // Only trigger the Poet if the magnitude warrants words
     if (poet && poet.enabled && style !== "silence") {
@@ -402,7 +415,50 @@ function applyMoodReaction(reaction: MoodReaction["keystroke"] | MoodReaction["c
     params.get("strobe") * 2 +
     params.get("glitch") * 2
   ) / 3);
-  audio.triggerSFX({ type: 'impact', pitch: 1.0 + reaction.pop * 0.5, duration: 0.1, volume: reaction.pop * scale, filter: 0.5, spatial: 0.5 });
+  
+  // Trigger drum sounds for clicks, impact for keystrokes
+  if ('params' in reaction && reaction.params) {
+    // This is a click reaction - trigger drums based on mood
+    const { mood, confidence: moodConf } = detectMood();
+    const drumIntensity = reaction.pop * scale;
+    
+    switch (mood.name) {
+      case 'explosive':
+        audio.triggerKick(drumIntensity);
+        setTimeout(() => audio.triggerSnare(drumIntensity * 0.7), 100);
+        break;
+      case 'chaotic':
+        audio.triggerDrumPattern('dnb', drumIntensity * 0.8);
+        break;
+      case 'stormy':
+        audio.triggerKick(drumIntensity);
+        setTimeout(() => audio.triggerBass(drumIntensity * 0.8, 0.5), 50);
+        break;
+      case 'psychedelic':
+        audio.triggerDrumPattern('techno', drumIntensity * 0.6);
+        break;
+      case 'crystalline':
+        audio.triggerSnare(drumIntensity);
+        setTimeout(() => audio.triggerHihat(drumIntensity * 0.5), 75);
+        break;
+      case 'watery':
+        audio.triggerHihat(drumIntensity * 0.6);
+        break;
+      case 'volcanic':
+        audio.triggerKick(drumIntensity);
+        setTimeout(() => audio.triggerSnare(drumIntensity * 0.8), 150);
+        break;
+      case 'energetic':
+        audio.triggerDrumPattern('basic', drumIntensity);
+        break;
+      default:
+        audio.triggerKick(drumIntensity * 0.7);
+    }
+  } else {
+    // This is a keystroke reaction - use impact
+    audio.triggerSFX({ type: 'impact', pitch: 1.0 + reaction.pop * 0.5, duration: 0.1, volume: reaction.pop * scale, filter: 0.5, spatial: 0.5 });
+  }
+  
   params.set("pulse", Math.min(params.get("pulse") + reaction.pulse * scale, 1.0));
   if (reaction.params) {
     for (const [name, { target, dur }] of Object.entries(reaction.params)) {
@@ -439,6 +495,38 @@ const wordInput = new WordInput(particles, {
     const reactions = reactor.onPhrase(phrase);
     if (reactions.length > 0) {
       debug.log("REACT", reactions.join(", "));
+      
+      // Check if any reaction is a preset name and apply it directly
+      for (const reaction of reactions) {
+        const moodMatch = reaction.match(/mood: (\w+)/);
+        if (moodMatch) {
+          const moodName = moodMatch[1];
+          // Check if this mood matches a preset name
+          const presetNames = [
+            "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
+            "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
+            "crystal", "organic", "digital", "zen", "storm", "aurora", "lava",
+            "fireworks", "jello", "cloth", "sparkle_field", "electric_storm", "lightning"
+          ];
+          
+          if (presetNames.includes(moodName)) {
+            // Apply the preset directly, bypassing LLM
+            debug.logDirector("direct preset application", `applying preset "${moodName}" from mood detection`);
+            
+            // Use the tool bridge to apply the preset
+            const toolCall = {
+                id: "direct-preset-" + Date.now(),
+                type: "function" as const,
+                function: { name: "apply_preset", arguments: JSON.stringify({ preset: moodName, intensity_scale: 1.0 }) }
+            };
+            const results = toolBridge.execute([toolCall]);
+            debug.logDirector("direct preset result", results[0]);
+            
+            // Don't send to LLM if we applied a preset directly
+            return;
+          }
+        }
+      }
     }
     debug.log("INPUT", `phrase: "${phrase}"`);
 
@@ -457,11 +545,11 @@ const wordInput = new WordInput(particles, {
       }, 600 + Math.random() * 400);
 
       const ctx = buildDirectorContext(phrase);
-      debug.log("LLM", `sending to Director (pending=${director.pending}, failures=${director.failures})`);
+      debug.logLLM("sending to Director", `pending=${director.pending}, failures=${director.failures}`);
       director.respond(ctx);
     } else {
       // No LLM or Director disabled — ambient voice responds to user
-      debug.log("LLM", "Director unavailable — ambient fallback");
+      debug.logLLM("Director unavailable", "ambient fallback");
       ambientVoice.respondToUser(phrase);
     }
   },
@@ -689,7 +777,7 @@ function frame(now: number) {
     // Log once when Director disables mid-session
     if (director && !director.enabled && !directorDisabledLogged) {
       directorDisabledLogged = true;
-      debug.log("ERROR", `Director disabled (${director.failures} failures) — ambient fallback`);
+      debug.logError("Director disabled", `${director.failures} failures — ambient fallback`);
     }
   }
 
@@ -742,6 +830,28 @@ function frame(now: number) {
         lfoRate,
         reverbWet
       });
+      
+      // Trigger drums based on drag energy
+      if (mouseEnergy > 0.3) {
+        const drumIntensity = Math.min(mouseEnergy, 1.0);
+        
+        // Different drums based on drag position
+        if (mouseX < 0.3) {
+          // Left side - kicks
+          audio.triggerKick(drumIntensity * 0.6);
+        } else if (mouseX > 0.7) {
+          // Right side - snares
+          audio.triggerSnare(drumIntensity * 0.5);
+        } else {
+          // Center - hihats
+          audio.triggerHihat(drumIntensity * 0.4);
+        }
+        
+        // Add bass on strong drags
+        if (mouseEnergy > 0.7) {
+          audio.triggerBass(drumIntensity * 0.5, 0.8 + mouseY * 0.4);
+        }
+      }
     }
   } else {
     gpuSprings.mouseForce = 0;
@@ -751,6 +861,28 @@ function frame(now: number) {
   // Update and render text particles (audio-reactive)
   particles.update(dt, audio.bass, audio.amplitude);
   overlay.render(particles.particles);
+  
+  // Create trailing particles on mouse movement for dreamlike effect
+  if (audioStarted && input.dragEnergy > 0.1 && gpuParticles) {
+    const trailIntensity = Math.min(input.dragEnergy * 0.3, 1.0);
+    const mouseX = input.mouseX;
+    const mouseY = input.mouseY;
+    
+    // Create ethereal trail particles
+    if (Math.random() < trailIntensity) {
+      const trailColor = [
+        0.6 + mouseX * 0.4, // R varies with horizontal position
+        0.4 + mouseY * 0.3, // G varies with vertical position  
+        0.8 + audio.bass * 0.2  // B pulses with bass
+      ];
+      
+      gpuParticles.sparkle(
+        mouseX + (Math.random() - 0.5) * 0.1,
+        mouseY + (Math.random() - 0.5) * 0.1,
+        1
+      );
+    }
+  }
 
   const transition = timeline.getTransitionState(clock.elapsed);
 

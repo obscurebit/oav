@@ -30,6 +30,9 @@ export class Renderer {
   /** Optional GPU systems — rendered between scene shaders and text overlay */
   gpuParticles: GPUParticleSystem | null = null;
   gpuSprings: GPUSpringSystem | null = null;
+  
+  /** Audio system for reactive effects */
+  audio: any | null = null;
 
   constructor(gl: WebGL2RenderingContext, registry: SceneRegistry) {
     this._gl = gl;
@@ -127,6 +130,14 @@ export class Renderer {
       params: state.params,
       resolution,
       gpuParticles: this.gpuParticles,
+      audio: this.audio ? {
+        bass: this.audio.bass,
+        amplitude: this.audio.amplitude,
+        brightness: this.audio.brightness,
+        mid: this.audio.mid,
+        high: this.audio.high,
+        beatHit: this.audio.beatHit
+      } : undefined,
     };
   }
 

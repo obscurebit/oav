@@ -78,7 +78,7 @@ export class Poet {
   private _pending = false;
   private _enabled: boolean;
   private _consecutiveFailures = 0;
-  private _onWords: ((words: string, kind: "voice" | "echo" | "whisper" | "transform") => void) | null = null;
+  private _onWords: ((words: string, kind: "voice" | "echo" | "whisper" | "transform", rawResponse?: any) => void) | null = null;
 
   constructor(config: PoetConfig) {
     this._config = {
@@ -92,7 +92,7 @@ export class Poet {
   get enabled(): boolean { return this._enabled; }
   get pending(): boolean { return this._pending; }
 
-  onWords(cb: (words: string, kind: "voice" | "echo" | "whisper" | "transform") => void): void {
+  onWords(cb: (words: string, kind: "voice" | "echo" | "whisper" | "transform", rawResponse?: any) => void): void {
     this._onWords = cb;
   }
 
@@ -171,7 +171,8 @@ export class Poet {
       for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
         const lineKind = i === 0 ? primaryKind : (i === 1 ? "echo" as const : "whisper" as const);
         if (this._onWords) {
-          this._onWords(lines[i], lineKind);
+          // Pass raw response data on first line only
+          this._onWords(lines[i], lineKind, i === 0 ? data : undefined);
         }
       }
 
