@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spring System Simple Test</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #000; 
+            color: #0f0; 
+            padding: 20px;
+            margin: 0;
+        }
+        canvas {
+            border: 1px solid #0f0;
+            display: block;
+            margin: 20px 0;
+        }
+        .controls {
+            background: #111;
+            border: 1px solid #666;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        button {
+            background: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #444;
+        }
+        .status {
+            background: #111;
+            border: 1px solid #666;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .success { color: #4f4; }
+        .error { color: #f44; }
+        .info { color: #4af; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Spring System Simple Test</h1>
+    
+    <canvas id="canvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="testInitialState()">🔍 Test Initial State</button>
+        <button onclick="testJello()">🎨 Test Jello</button>
+        <button onclick="testClear()">🧹 Test Clear</button>
+        <button onclick="testPoke()">👆 Test Poke</button>
+        <button onclick="toggleLines()">📐 Toggle Lines</button>
+    </div>
+
+    <div id="status" class="status">Ready to test spring system...</div>
+
+    <script>
+        let gl, springs;
+        let frameCount = 0;
+
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            status.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            status.scrollTop = status.scrollHeight;
+        }
+
+        function initWebGL() {
+            const canvas = document.getElementById('canvas');
+            gl = canvas.getContext('webgl2');
+            if (!gl) {
+                log('❌ WebGL2 not supported', 'error');
+                return false;
+            }
+            log('✅ WebGL2 initialized', 'success');
+            return true;
+        }
+
+        function initSprings() {
+            // Mock the spring system with minimal WebGL setup
+            springs = {
+                nodeCount: 0,
+                springCount: 0,
+                drawLines: false,
+                drawNodes: false,
+                color: [0.4, 0.7, 1.0],
+                gravity: [0, -0.3],
+                damping: 0.03,
+                
+                createGrid: function(config) {
+                    log(`🎨 Creating grid: ${config.cols}x${config.rows}`, 'info');
+                    this.nodeCount = config.cols * config.rows;
+                    this.springCount = (config.cols - 1) * config.rows + config.cols * (config.rows - 1);
+                    this.color = config.color;
+                    log(`📊 Mesh: ${this.nodeCount} nodes, ${this.springCount} springs`, 'info');
+                    log(`🎨 Color: [${config.color.join(', ')}]`, 'info');
+                },
+                
+                clear: function() {
+                    log(`🧹 Clearing mesh: ${this.nodeCount} nodes, ${this.springCount} springs`, 'info');
+                    this.nodeCount = 0;
+                    this.springCount = 0;
+                },
+                
+                poke: function(x, y, radius, force) {
+                    log(`👆 Poke at (${x.toFixed(2)}, ${y.toFixed(2)}) radius=${radius} force=${force}`, 'info');
+                },
+                
+                render: function() {
+                    if (this.nodeCount === 0) {
+                        // Clear canvas to black
+                        gl.clearColor(0, 0, 0, 1);
+                        gl.clear(gl.COLOR_BUFFER_BIT);
+                        return;
+                    }
+                    
+                    // Simple rendering test - draw colored rectangle
+                    gl.clearColor(0, 0, 0, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    
+                    // Draw a simple colored rect to represent the mesh
+                    gl.enable(gl.BLEND);
+                    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+                    
+                    // Use the spring color
+                    gl.clearColor(this.color[0], this.color[1], this.color[2], 0.3);
+                    gl.clear(gl.COLOR_BUFFER_BIT);
+                    
+                    // Draw some lines if enabled
+                    if (this.drawLines) {
+                        log(`📐 Rendering ${this.springCount} lines in color [${this.color.join(', ')}]`, 'info');
+                    }
+                }
+            };
+            
+            log('✅ Spring system initialized', 'success');
+        }
+
+        function testInitialState() {
+            log('🔍 Testing initial state...', 'info');
+            log(`📊 nodeCount: ${springs.nodeCount}`, 'info');
+            log(`📊 springCount: ${springs.springCount}`, 'info');
+            log(`📐 drawLines: ${springs.drawLines}`, 'info');
+            log(`🎨 color: [${springs.color.join(', ')}]`, 'info');
+            
+            if (springs.nodeCount === 0) {
+                log('✅ Initial state is correct (no mesh)', 'success');
+            } else {
+                log('⚠️ Initial state has mesh - this could cause issues', 'error');
+            }
+        }
+
+        function testJello() {
+            log('🎨 Testing jello preset...', 'info');
+            springs.createGrid({
+                cols: 24,
+                rows: 18,
+                originX: -0.6,
+                originY: -0.4,
+                width: 1.2,
+                height: 0.8,
+                stiffness: 80,
+                damping: 2.0,
+                mass: 0.012,
+                pinnedRow: 17,
+                color: [0.8, 0.4, 0.6], // Pink/purple color
+            });
+            springs.drawLines = true;
+            log('📐 Lines enabled for jello', 'info');
+        }
+
+        function testClear() {
+            log('🧹 Testing clear...', 'info');
+            springs.clear();
+            springs.drawLines = false;
+            log('📐 Lines disabled', 'info');
+        }
+
+        function testPoke() {
+            log('👆 Testing poke...', 'info');
+            springs.poke(0.0, 0.0, 0.3, 0.5);
+        }
+
+        function toggleLines() {
+            springs.drawLines = !springs.drawLines;
+            log(`📐 Lines ${springs.drawLines ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        function render() {
+            if (springs) {
+                springs.render();
+            }
+            frameCount++;
+            requestAnimationFrame(render);
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🚀 Starting spring system test...', 'info');
+            
+            if (initWebGL()) {
+                initSprings();
+                render();
+                log('✅ Test ready - click buttons to test spring system', 'success');
+            }
+        };
+    </script>
+</body>
+</html>
