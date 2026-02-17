@@ -11,7 +11,7 @@ import {
 } from "./renderer";
 import { GPUParticleSystem } from "./renderer/particles/gpu-particles";
 import { GPUSpringSystem } from "./renderer/particles/gpu-springs";
-import { Audio } from "./audio";
+import { EnhancedAudio } from "./audio/enhanced-audio";
 import { TextParticleSystem, TextOverlay, WordInput } from "./overlay";
 import { Director, AmbientVoice, ToolBridge, Poet, PRESETS } from "./llm";
 import type { DirectorContext, ToolCall, PoetContext, PoetDirective, PoetStyle } from "./llm";
@@ -39,7 +39,7 @@ const params = new ParameterStore();
 const timeline = new Timeline();
 const renderer = new Renderer(gl, registry);
 const input = new Input(canvas);
-const audio = new Audio();
+const audio = new EnhancedAudio();
 
 // --- GPU particle & spring systems ---
 const gpuParticles = new GPUParticleSystem(gl);
@@ -402,7 +402,7 @@ function applyMoodReaction(reaction: MoodReaction["keystroke"] | MoodReaction["c
     params.get("strobe") * 2 +
     params.get("glitch") * 2
   ) / 3);
-  audio.playPop(reaction.pop * scale, energy);
+  audio.triggerSFX({ type: 'impact', pitch: 1.0 + reaction.pop * 0.5, duration: 0.1, volume: reaction.pop * scale, filter: 0.5, spatial: 0.5 });
   params.set("pulse", Math.min(params.get("pulse") + reaction.pulse * scale, 1.0));
   if (reaction.params) {
     for (const [name, { target, dur }] of Object.entries(reaction.params)) {
@@ -650,13 +650,13 @@ function frame(now: number) {
     params.get("aberration") +
     params.get("warp") / 3
   ) / 2);
-  audio.setMood(moodEnergy, moodWarmth, moodTexture);
+  // EnhancedAudio doesn't have setMood - mood is handled through visual params
 
   // Scene-reactive audio mix + detect scene transitions for titles
   const currentTransition = timeline.getTransitionState(clock.elapsed);
   if (currentTransition) {
     const sceneId = currentTransition.current.sceneId;
-    audio.setSceneMix(sceneId, currentTransition.current.progress);
+    // EnhancedAudio doesn't have setSceneMix - scene mixing handled through parameters
 
     // Fire themed title when the active scene changes (works with repeating scenes)
     if (sceneId !== lastActiveSceneId) {
@@ -725,6 +725,24 @@ function frame(now: number) {
     }
     // Audio-reactive jiggle on the spring mesh
     gpuSprings.jiggle = audio.bass * 0.5;
+    
+    // Mouse interaction affects audio parameters
+    if (audioStarted) {
+      const mouseX = input.mouseX;
+      const mouseY = input.mouseY;
+      const mouseEnergy = input.dragEnergy;
+      
+      // Mouse position affects filter and LFO
+      const filterFreq = 200 + mouseX * 3000; // 200Hz to 3200Hz based on X
+      const lfoRate = 0.1 + mouseY * 2.0; // 0.1Hz to 2.1Hz based on Y
+      const reverbWet = Math.min(mouseEnergy * 0.5, 0.8); // More movement = more reverb
+      
+      audio.setParams({
+        filterFreq,
+        lfoRate,
+        reverbWet
+      });
+    }
   } else {
     gpuSprings.mouseForce = 0;
     gpuSprings.jiggle = 0;
@@ -819,7 +837,7 @@ let audioStarted = false;
 canvas.addEventListener("mousedown", () => {
   if (!audioStarted) {
     audio.init();
-    audio.playDrone();
+    audio.start();
     audioStarted = true;
   }
   lastUserInteraction = clock.elapsed;
