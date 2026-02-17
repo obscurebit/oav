@@ -19,8 +19,8 @@ void main() {
   vSpeed = speed;
 
   // Jello effect: add some wobble based on time and velocity
-  float wobble = sin(uTime * 3.0 + aPosition.x * 10.0) * 0.01;
-  vec2 wobblePos = aPosition + vec2(wobble, cos(uTime * 2.0 + aPosition.y * 8.0) * 0.01);
+  float wobble = sin(uTime * 3.0 + aPosition.x * 10.0) * 0.03;
+  vec2 wobblePos = aPosition + vec2(wobble, cos(uTime * 2.0 + aPosition.y * 8.0) * 0.03);
   gl_Position = vec4(wobblePos, 0.0, 1.0);
 
   // Color: base color with velocity-based brightness and pulsing

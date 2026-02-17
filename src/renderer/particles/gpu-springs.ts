@@ -345,13 +345,18 @@ export class GPUSpringSystem {
       gl.uniform3fv(gl.getUniformLocation(this._lineProgram, "uBaseColor"), this.color);
       gl.uniform1f(gl.getUniformLocation(this._lineProgram, "uTime"), time);
 
-      // Make lines thicker for jello effect
-      gl.lineWidth(2.0);
+      // Draw lines as strips for better visibility
+      gl.lineWidth(3.0);
 
       gl.bindVertexArray(this._lineVao);
       gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[this._current]);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._lineIbo);
-      gl.drawElements(gl.LINES, this._lineCount * 2, gl.UNSIGNED_SHORT, 0);
+      
+      // Draw lines multiple times for thickness effect
+      for (let i = 0; i < 3; i++) {
+        gl.drawElements(gl.LINES, this._lineCount * 2, gl.UNSIGNED_SHORT, 0);
+      }
+      
       gl.bindVertexArray(null);
     }
 

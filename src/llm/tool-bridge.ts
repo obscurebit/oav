@@ -434,6 +434,9 @@ export class ToolBridge {
       oav.gpuSprings.damping = 0.015; // Lower damping for more wobble
       oav.gpuSprings.drawLines = true;
       oav.gpuSprings.drawNodes = false;
+      
+      // Add initial jiggle to get the jello moving immediately
+      oav.gpuSprings.jiggle = 0.5;
     } else if (preset === "cloth" && oav?.gpuSprings) {
       // Fabric-like cloth mesh with paper-inspired parameters
       oav.gpuSprings.createGrid({
