@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spring System Test</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #000; 
+            color: #0f0; 
+            padding: 20px;
+        }
+        .test-button {
+            background: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .test-button:hover {
+            background: #444;
+        }
+        .result {
+            background: #111;
+            border: 1px solid #666;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .error { color: #f44; }
+        .success { color: #4f4; }
+        .info { color: #4af; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Spring System Debug Test</h1>
+    
+    <div>
+        <button class="test-button" onclick="checkSpringState()">🔍 Check Spring State</button>
+        <button class="test-button" onclick="clearSprings()">🧹 Clear Springs</button>
+        <button class="test-button" onclick="createJello()">🎨 Create Jello</button>
+        <button class="test-button" onclick="pokeSprings()">👆 Poke Springs</button>
+        <button class="test-button" onclick="checkConsole()">📋 Check Console Logs</button>
+    </div>
+
+    <div id="results" class="result">
+        Click buttons above to test spring system...
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            results.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function checkSpringState() {
+            try {
+                log('🔍 Checking spring system state...', 'info');
+                
+                const oav = window.__OAV__;
+                if (!oav) {
+                    log('❌ No __OAV__ object found - app not loaded?', 'error');
+                    return;
+                }
+
+                const springs = oav.gpuSprings;
+                if (!springs) {
+                    log('❌ No gpuSprings found - spring system not initialized', 'error');
+                    return;
+                }
+
+                const state = {
+                    nodeCount: springs.nodeCount,
+                    springCount: springs.springCount,
+                    drawLines: springs.drawLines,
+                    drawNodes: springs.drawNodes,
+                    color: springs.color,
+                    gravity: springs.gravity,
+                    damping: springs.damping
+                };
+
+                log('✅ Spring system found!', 'success');
+                log(`📊 State: ${JSON.stringify(state, null, 2)}`, 'info');
+
+                if (state.nodeCount > 0) {
+                    log(`⚠️  Spring mesh has ${state.nodeCount} nodes - this might be causing visual issues!`, 'error');
+                    log('💡 Try clicking "Clear Springs" to remove the mesh', 'info');
+                } else {
+                    log('✅ No spring mesh currently - this is correct for initial state', 'success');
+                }
+
+            } catch (error) {
+                log(`❌ Error checking spring state: ${error.message}`, 'error');
+            }
+        }
+
+        function clearSprings() {
+            try {
+                log('🧹 Clearing spring mesh...', 'info');
+                
+                const oav = window.__OAV__;
+                if (!oav?.gpuSprings) {
+                    log('❌ Spring system not available', 'error');
+                    return;
+                }
+
+                const beforeCount = oav.gpuSprings.nodeCount;
+                oav.gpuSprings.clear();
+                const afterCount = oav.gpuSprings.nodeCount;
+
+                log(`✅ Cleared springs: ${beforeCount} → ${afterCount} nodes`, 'success');
+                
+                if (afterCount === 0) {
+                    log('✅ Spring mesh successfully cleared - visual artifacts should be gone', 'success');
+                }
+
+            } catch (error) {
+                log(`❌ Error clearing springs: ${error.message}`, 'error');
+            }
+        }
+
+        function createJello() {
+            try {
+                log('🎨 Creating jello preset...', 'info');
+                
+                const oav = window.__OAV__;
+                if (!oav?.toolBridge) {
+                    log('❌ Tool bridge not available', 'error');
+                    return;
+                }
+
+                oav.toolBridge.execute([{
+                    id: 'test-jello',
+                    type: 'function',
+                    function: { 
+                        name: 'apply_preset', 
+                        arguments: JSON.stringify({ preset: 'jello' }) 
+                    }
+                }]);
+
+                log('✅ Jello preset applied - check for pink/purple mesh', 'success');
+                
+                setTimeout(() => {
+                    checkSpringState();
+                }, 1000);
+
+            } catch (error) {
+                log(`❌ Error creating jello: ${error.message}`, 'error');
+            }
+        }
+
+        function pokeSprings() {
+            try {
+                log('👆 Poking springs at center...', 'info');
+                
+                const oav = window.__OAV__;
+                if (!oav?.gpuSprings) {
+                    log('❌ Spring system not available', 'error');
+                    return;
+                }
+
+                oav.gpuSprings.poke(0.0, 0.0, 0.3, 0.5);
+                log('✅ Poked springs - should see movement if mesh exists', 'success');
+
+            } catch (error) {
+                log(`❌ Error poking springs: ${error.message}`, 'error');
+            }
+        }
+
+        function checkConsole() {
+            log('📋 Checking for [Springs] console messages...', 'info');
+            log('💡 Open browser console (F12) and look for [Springs] log messages', 'info');
+            log('🔍 Expected messages:', 'info');
+            log('   - "[Springs] Creating grid: 24x18, color: [0.8, 0.4, 0.6]" - if mesh created', 'info');
+            log('   - "[Springs] Clearing mesh: X nodes, Y springs" - when cleared', 'info');
+            log('   - "[Springs] Render skipped: no nodes" - if no mesh (good)', 'info');
+        }
+
+        // Auto-check on load
+        setTimeout(() => {
+            log('🚀 Spring System Debug Test loaded', 'success');
+            log('💡 Navigate to http://localhost:5175 first, then run tests', 'info');
+        }, 100);
+    </script>
+</body>
+</html>
