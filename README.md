@@ -21,7 +21,7 @@ You type into the void. Your letters scatter like startled birds. The world *hea
 - **4-layer audio drone** — sub bass, harmonics, filtered noise, ethereal pad with convolver reverb, scene-reactive mixing
 - **Dual-LLM architecture** — Director (engine control via tool-calling) + Poet (poetic text generation)
 - **Magnitude-driven responses** — subtle changes produce silence; dramatic shifts produce titles
-- **21 named visual presets** — noir, vaporwave, psychedelic, cosmic, dream, nightmare, and more
+- **22 named visual presets** — noir, vaporwave, psychedelic, cosmic, dream, nightmare, lightning, and more
 - **Artful text input** — type into the void, characters scatter as particles
 - **Director-controlled narrative** — LLM Director controls scene flow, creating intentional story arcs
 - **Professional fireworks** — 5 types (chrysanthemum, willow, palm, crossette, salute) with trails and sparkles

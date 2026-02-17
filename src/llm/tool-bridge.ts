@@ -45,6 +45,7 @@ export const PRESETS: Record<string, Record<string, number>> = {
   cloth:       { bloom: 0.2, saturation: 0.6, speed: 0.3, zoom: 1.0, intensity: 0.4, warmth: 0.1, contrast: 1.2, vignette: 0.6, hue: 0.55, warp: 0.05, spin: 0, aberration: 0, noise_scale: 1.5, ridge: 0 },
   sparkle_field: { bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, hue: 0.6, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0 },
   electric_storm: { bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, hue: 0.6, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3 },
+  lightning:    { bloom: 1.5, strobe: 0.9, saturation: 0.8, speed: 4.0, zoom: 0.4, intensity: 1.0, warmth: -0.4, contrast: 2.5, vignette: 0.1, hue: 0.55, warp: 0.2, spin: 0.1, aberration: 0.8, noise_scale: 8, ridge: 0.6, glitch: 0.4 },
   
   // Word presets - dramatic scene titles with matching visuals
   emergence: { bloom: 0.4, saturation: 0.7, speed: 0.3, zoom: 1.2, intensity: 0.6, warmth: 0.1, contrast: 1.3, vignette: 0.6, hue: 0.58, warp: 0.2, spin: 0, aberration: 0, noise_scale: 1.8, ridge: 0 },
@@ -513,6 +514,58 @@ export class ToolBridge {
       // Lightning every 4 seconds
       const interval = setInterval(lightning, 4000);
       setTimeout(() => clearInterval(interval), 30000);
+    } else if (preset === "lightning" && oav?.gpuParticles) {
+      // Intense lightning storm with multiple strikes
+      const lightningStrike = () => {
+        // Main lightning bolt
+        const mainX = (Math.random() - 0.5) * 1.6;
+        const mainY = 0.9;
+        oav.gpuParticles.enhancedFirework({
+          x: mainX,
+          y: mainY,
+          intensity: 1.0,
+          color: "white",
+          type: "chrysanthemum"
+        });
+        
+        // Secondary branches
+        setTimeout(() => {
+          for (let i = 0; i < 3; i++) {
+            const branchX = mainX + (Math.random() - 0.5) * 0.4;
+            const branchY = mainY - Math.random() * 0.3;
+            oav.gpuParticles.firework(branchX, branchY, 0.3);
+          }
+        }, 100);
+        
+        // Ground flash
+        setTimeout(() => {
+          const groundX = mainX + (Math.random() - 0.5) * 0.2;
+          oav.gpuParticles.firework(groundX, -0.8, 0.2);
+        }, 200);
+      };
+      
+      // Lightning strikes every 2-3 seconds (randomized)
+      const scheduleNext = () => {
+        const delay = 2000 + Math.random() * 1000;
+        setTimeout(() => {
+          lightningStrike();
+          if (Math.random() > 0.3) {
+            scheduleNext(); // 70% chance to continue
+          }
+        }, delay);
+      };
+      
+      // Start the storm
+      lightningStrike();
+      scheduleNext();
+      
+      // Occasional double strike
+      setTimeout(() => {
+        if (Math.random() > 0.5) {
+          lightningStrike();
+          setTimeout(lightningStrike, 300);
+        }
+      }, 5000);
       }
     }
 

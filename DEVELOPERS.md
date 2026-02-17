@@ -219,9 +219,9 @@ Tests are in `src/*/__tests__/*.test.ts`. Engine tests are pure (no DOM/WebGL ne
 
 ## Presets
 
-21 named presets available via the `apply_preset` tool:
+22 named presets available via the `apply_preset` tool:
 
-`noir` · `vaporwave` · `glitch_art` · `underwater` · `fire` · `ice` · `psychedelic` · `minimal` · `cosmic` · `industrial` · `dream` · `nightmare` · `crystal` · `organic` · `digital` · `zen` · `storm` · `aurora` · `lava` · `void` · `reset`
+`noir` · `vaporwave` · `glitch_art` · `underwater` · `fire` · `ice` · `psychedelic` · `minimal` · `cosmic` · `industrial` · `dream` · `nightmare` · `crystal` · `organic` · `digital` · `zen` · `storm` · `aurora` · `lava` · `void` · `lightning` · `reset`
 
 ## Architecture Decision Records
 
