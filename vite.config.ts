@@ -8,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [glsl()],
+  base: '/', // Custom domain - no subdirectory needed
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),

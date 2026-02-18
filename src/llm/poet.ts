@@ -124,6 +124,8 @@ export class Poet {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${this._config.apiKey}`,
+          "Origin": window.location.origin,
+          "Referer": window.location.origin,
         },
         body: JSON.stringify({
           model: this._config.model,
@@ -137,18 +139,30 @@ export class Poet {
       });
 
       if (!response.ok) {
-        console.warn("[Poet] API error:", response.status);
-        this._recordFailure();
-        return;
+        const errorText = await response.text();
+        console.warn("[Poet] API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText,
+        });
+        
+        // If CORS error, return null to fall back to ambient
+        if (response.status === 0 || errorText.includes('CORS') || errorText.includes('fetch')) {
+          console.error("[Poet] CORS error detected, falling back to ambient");
+          return;
+        }
+        
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
-      if (typeof content !== "string" || !content.trim()) return;
+      
+      if (!content) {
+        console.warn("[Poet] No message content in response");
+        return;
+      }
 
-      this._consecutiveFailures = 0;
-
-      // Clean the response — strip any think blocks or JSON that leaked
       const cleaned = content
         .replace(/<think>[\s\S]*?<\/think>/g, "")
         .replace(/```[\s\S]*?```/g, "")
@@ -158,7 +172,7 @@ export class Poet {
       if (!cleaned) return;
 
       // Split into lines, each becomes a separate visual element
-      const lines = cleaned.split(/\n+/).map(l => l.trim()).filter(l => l.length > 0 && l.length < 80);
+      const lines = cleaned.split(/\n+/).map((l: string) => l.trim()).filter((l: string) => l.length > 0 && l.length < 80);
 
       // Map directive style to particle kinds
       const style = ctx.directive.style;

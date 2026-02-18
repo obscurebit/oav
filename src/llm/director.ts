@@ -192,47 +192,63 @@ export class Director {
         messageCount: messages.length,
       });
 
-      const response = await fetch(this._config.apiUrl!, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${this._config.apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn("[Director] API error:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorBody: errorText,
+      try {
+        const response = await fetch(this._config.apiUrl!, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${this._config.apiKey}`,
+            "Origin": window.location.origin,
+            "Referer": window.location.origin,
+          },
+          body: JSON.stringify(requestBody),
         });
-        this._recordFailure();
-        return;
-      }
 
-      const data = await response.json();
-      
-      // Log raw HTTP response JSON for debugging
-      console.log("[Director] Raw HTTP response:", data);
-      
-      const message = data.choices?.[0]?.message;
-      if (!message) return;
-
-      this._consecutiveFailures = 0;
-      const result = this._parseResult(message);
-      if (result) {
-        // Include raw HTTP response for debugging
-        result.rawResponse = data;
-      }
-      if (result && this._onResult) {
-        // Record what the LLM said in story history
-        const spokenWords = this._extractSpokenWords(result.toolCalls);
-        if (spokenWords) {
-          this._addToHistory("assistant", spokenWords, ctx.elapsed);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn("[Director] API error:", {
+            status: response.status,
+            statusText: response.statusText,
+            errorBody: errorText,
+          });
+          
+          // If CORS error, disable director and fall back to ambient
+          if (response.status === 0 || errorText.includes('CORS') || errorText.includes('fetch')) {
+            console.error("[Director] CORS error detected, disabling Director");
+            this._enabled = false;
+            return;
+          }
+          
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
-        this._onResult(result);
+
+        const data = await response.json();
+        
+        // Log raw HTTP response JSON for debugging
+        console.log("[Director] Raw HTTP response:", data);
+        
+        const message = data.choices?.[0]?.message;
+        if (!message) return;
+
+        this._consecutiveFailures = 0;
+        const result = this._parseResult(message);
+        if (result) {
+          // Include raw HTTP response for debugging
+          result.rawResponse = data;
+        }
+        if (result && this._onResult) {
+          // Record what the LLM said in story history
+          const spokenWords = this._extractSpokenWords(result.toolCalls);
+          if (spokenWords) {
+            this._addToHistory("assistant", spokenWords, ctx.elapsed);
+          }
+          this._onResult(result);
+        }
+        return;
+      } catch (error) {
+        this._recordFailure();
+        console.error("[Director] API call failed:", error);
+        return;
       }
     } catch (err) {
       console.warn("[Director] Request failed:", {
