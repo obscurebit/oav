@@ -16,6 +16,7 @@ import { TextParticleSystem, TextOverlay, WordInput } from "./overlay";
 import { Director, AmbientVoice, ToolBridge, Poet, PRESETS } from "./llm";
 import type { DirectorContext, ToolCall, PoetContext, PoetDirective, PoetStyle } from "./llm";
 import { AudioDebugOverlay } from "./audio-debug-overlay";
+import { ManualMode } from "./manual";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2");
@@ -64,6 +65,24 @@ const toolBridge = new ToolBridge({
   canvasHeight: () => canvas.height,
   clock,
 });
+
+// --- Manual Mode ---
+const manualMode = new ManualMode({
+  params,
+  timeline,
+  toolBridge,
+  audio,
+  gpuParticles,
+  gpuSprings,
+  canvasWidth: () => canvas.width,
+  canvasHeight: () => canvas.height,
+});
+
+// Auto-enable manual mode if VITE_MODE=manual
+if (import.meta.env.MODE === 'manual') {
+  console.log("[MANUAL] Starting in manual mode (VITE_MODE=manual)");
+  manualMode.enable();
+}
 
 // --- LLM Director (or ambient fallback) ---
 const apiKey = import.meta.env.VITE_LLM_API_KEY as string | undefined;
@@ -217,10 +236,10 @@ if (director) {
     const responseType = classifyResponse(result.toolCalls);
     if (responseType === "affirm") {
       flashAffirm();
-      debug.logLLM("response", "AFFIRM");
+      debug.log("SIM", "response: AFFIRM");
     } else if (responseType === "deflect") {
       flashDeflect();
-      debug.logLLM("response", "DEFLECT");
+      debug.log("SIM", "response: DEFLECT");
     }
 
     const savedPhrase = lastUserPhrase;
@@ -255,7 +274,7 @@ if (director) {
       : null;
 
     const directive: PoetDirective = { magnitude, style, actionSummary };
-    debug.logLLM(`magnitude: ${magnitude.toFixed(2)} → style: ${style}`);
+    debug.log("SIM", `magnitude: ${magnitude.toFixed(2)} → style: ${style}`);
 
     // Only trigger the Poet if the magnitude warrants words
     if (poet && poet.enabled && style !== "silence") {
@@ -270,9 +289,10 @@ if (director) {
   });
 }
 
-// --- LLM response visual feedback ---
-// Classify whether the LLM "engaged" with user input or deflected/went ambient,
-// then fire a distinct visual reaction so the user feels the world responding.
+// --- System calculation counters for SIM logging
+let lastDriftCount = 0;
+let lastPulseCount = 0;
+
 let lastUserPhrase: string | null = null;
 
 function classifyResponse(toolCalls: ToolCall[]): "affirm" | "deflect" | "ambient" {
@@ -545,11 +565,11 @@ const wordInput = new WordInput(particles, {
       }, 600 + Math.random() * 400);
 
       const ctx = buildDirectorContext(phrase);
-      debug.logLLM("sending to Director", `pending=${director.pending}, failures=${director.failures}`);
+      debug.log("SIM", "sending to Director: pending=false, failures=0");
       director.respond(ctx);
     } else {
       // No LLM or Director disabled — ambient voice responds to user
-      debug.logLLM("Director unavailable", "ambient fallback");
+      debug.log("SIM", "Director unavailable - ambient fallback");
       ambientVoice.respondToUser(phrase);
     }
   },
@@ -654,6 +674,14 @@ window.addEventListener("keydown", markInteraction, { once: true });
 window.addEventListener("click", markInteraction, { once: true });
 window.addEventListener("mousemove", markInteraction, { once: true });
 
+// --- Manual mode toggle (F1 key) ---
+window.addEventListener("keydown", (e) => {
+  if (e.key === "F1") {
+    e.preventDefault();
+    manualMode.toggle();
+  }
+});
+
 // --- Debug interface for Playwright tests ---
 (window as unknown as Record<string, unknown>).__OAV__ = {
   get params() { return params.snapshot(); },
@@ -661,6 +689,9 @@ window.addEventListener("mousemove", markInteraction, { once: true });
   get particleCount() { return particles.count; },
   get particles() { return particles.particles.map(p => ({ text: p.text, kind: p.kind, opacity: p.opacity, x: p.x, y: p.y })); },
   get audioStarted() { return audioStarted; },
+  get audio() { return audio; }, // Add audio object for debug overlay
+  get director() { return director; }, // Expose director for manual mode
+  get manualMode() { return manualMode; }, // Expose manual mode
   setParam: (name: string, value: number) => params.set(name, value),
   driftParam: (name: string, target: number, duration: number) => params.drift(name, target, duration),
   applyPreset: (preset: string) => toolBridge.execute([{
@@ -688,6 +719,9 @@ window.addEventListener("mousemove", markInteraction, { once: true });
   firework: (x: number, y: number, intensity?: number) => gpuParticles.firework(x, y, intensity),
   sparkle: (x: number, y: number, count?: number) => gpuParticles.sparkle(x, y, count),
   pokeSprings: (x: number, y: number, radius?: number, force?: number) => gpuSprings.poke(x, y, radius ?? 0.3, force ?? 0.5),
+  // Debug overlays
+  debug,
+  audioDebug,
 };
 
 // --- Scene transition tracking ---
@@ -723,6 +757,15 @@ function frame(now: number) {
   params.set("amplitude", audio.amplitude);
   params.set("bass", audio.bass);
   params.set("brightness", audio.brightness);
+  
+    // Log audio analysis results
+  if (audio.beatHit) {
+    console.log("[DEBUG] Creating AUDIO-STREAM log for beat hit");
+    debug.log("AUDIO-STREAM", `BEAT hit (amp:${audio.amplitude.toFixed(3)}, bass:${audio.bass.toFixed(3)})`);
+  } else if (audio.amplitude > 0.1 || audio.bass > 0.1) {
+    console.log("[DEBUG] Creating AUDIO-STREAM log for amplitude", audio.amplitude, audio.bass);
+    debug.log("AUDIO-STREAM", `amp:${audio.amplitude.toFixed(3)}, bass:${audio.bass.toFixed(3)}, bright:${audio.brightness.toFixed(3)}`);
+  }
 
   // Derive audio mood from visual params (every frame, but setMood smooths internally)
   const moodEnergy = Math.min(1, (
@@ -763,7 +806,16 @@ function frame(now: number) {
   }
 
   // Advance param drifts and pulses
+  const activeDrifts = params.activeDrifts;
+  const activePulses = params.activePulses;
   params.tick(dt);
+  
+  // Log parameter interpolation activity only when count changes significantly
+  if (activeDrifts !== lastDriftCount || activePulses !== lastPulseCount) {
+    debug.log("SIM", `param interpolation: ${activeDrifts} drifts, ${activePulses} pulses`);
+    lastDriftCount = activeDrifts;
+    lastPulseCount = activePulses;
+  }
 
   // Update LLM director or ambient voice (director may self-disable on failures)
   if (director && director.enabled) {
@@ -790,6 +842,11 @@ function frame(now: number) {
   // Update GPU particle and spring systems
   gpuParticles.update(dt, clock.elapsed);
   gpuSprings.update(dt, clock.elapsed);
+
+  // Update manual mode sliders if active
+  if (manualMode.isEnabled) {
+    manualMode.updateSliders();
+  }
 
   // Tap gesture: firework burst + optional spring poke
   if (input.tapped) {
@@ -885,6 +942,17 @@ function frame(now: number) {
   }
 
   const transition = timeline.getTransitionState(clock.elapsed);
+  
+  // Safety check: ensure we always have a valid scene (fallback to intro if needed)
+  if (!transition || !transition.current) {
+    console.warn("[MAIN] No active scene found, falling back to intro");
+    timeline.add({
+      startTime: 0,
+      endTime: Number.MAX_SAFE_INTEGER,
+      sceneId: "intro",
+      transitionDuration: 0
+    });
+  }
 
   renderer.draw({
     time: clock.elapsed,

@@ -184,7 +184,15 @@ export class GPUParticleSystem {
 
   /** Update all particles on the GPU via transform feedback. */
   update(dt: number, time: number): void {
-    if (this._aliveCount === 0) return;
+    if (this._aliveCount === 0) {
+      // Ensure transform feedback is completely unbound when no particles
+      const gl = this._gl;
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      gl.bindVertexArray(null);
+      return;
+    }
 
     const gl = this._gl;
     const readIdx = this._current;
@@ -214,6 +222,7 @@ export class GPUParticleSystem {
 
     gl.disable(gl.RASTERIZER_DISCARD);
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
     gl.bindVertexArray(null);
 
     // Swap buffers
@@ -229,6 +238,15 @@ export class GPUParticleSystem {
     if (this._aliveCount === 0) return;
 
     const gl = this._gl;
+
+    // Completely reset all transform feedback state before any buffer operations
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+    
+    // Also unbind from generic array buffer to be safe
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    
+    gl.bindVertexArray(null);
 
     gl.useProgram(this._renderProgram);
     gl.uniform2f(

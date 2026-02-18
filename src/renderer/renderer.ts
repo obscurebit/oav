@@ -51,8 +51,11 @@ export class Renderer {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    // Always draw the current scene, transition or not
+    this._drawCurrentScene(state);
+
     if (state.transition) {
-      this._drawScenes(state);
+      this._drawTransitionScenes(state);
     }
 
     // Draw GPU particles and springs on top of scene (additive blend)
@@ -63,6 +66,29 @@ export class Renderer {
     if (state.overlayTexture) {
       this._drawOverlay(state.overlayTexture);
     }
+  }
+
+  private _drawCurrentScene(state: RenderState): void {
+    const gl = this._gl;
+    const res: [number, number] = [gl.drawingBufferWidth, gl.drawingBufferHeight];
+    
+    // Get current scene from timeline or use a default
+    const currentSceneId = state.transition?.current.sceneId || "intro";
+    const currentScene = this._registry.get(currentSceneId);
+    
+    if (currentScene) {
+      const sceneState = this._buildSceneState(
+        state.transition?.current || { sceneId: currentSceneId, progress: 0, localTime: state.time },
+        state,
+        res
+      );
+      currentScene.draw(gl, sceneState);
+      currentScene.triggerParticles?.(sceneState);
+    }
+  }
+
+  private _drawTransitionScenes(state: RenderState): void {
+    this._drawScenes(state);
   }
 
   private _drawScenes(state: RenderState): void {

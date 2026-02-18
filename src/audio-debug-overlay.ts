@@ -41,6 +41,7 @@ export class AudioDebugOverlay {
   private _analysisEl: HTMLDivElement;
   private _paramsEl: HTMLDivElement;
   private _effectsEl: HTMLDivElement;
+  private _streamEl: HTMLDivElement;
 
   constructor() {
     this._el = document.createElement("div");
@@ -56,9 +57,9 @@ export class AudioDebugOverlay {
     // Audio debug panel
     const panel = document.createElement("div");
     panel.style.cssText = `
-      position: absolute; bottom: 8px; right: 8px; width: 420px; max-height: calc(100vh - 16px);
+      position: absolute; top: 8px; right: 8px; width: 420px;
       background: rgba(0,0,0,0.85); border: 1px solid rgba(0,255,255,0.3);
-      border-radius: 4px; padding: 8px; overflow-y: auto;
+      border-radius: 4px; padding: 8px;
       pointer-events: auto;
     `;
 
@@ -67,15 +68,46 @@ export class AudioDebugOverlay {
     this._effectsEl = this._section("🎚 AUDIO EFFECTS");
 
     panel.append(this._analysisEl, this._paramsEl, this._effectsEl);
+    
+    // Audio stream panel - below the main audio panel
+    const streamPanel = document.createElement("div");
+    streamPanel.style.cssText = `
+      position: absolute; top: 280px; right: 8px; width: 420px; max-height: calc(100vh - 300px);
+      background: rgba(0,0,0,0.85); border: 1px solid rgba(0,255,255,0.3);
+      border-radius: 4px; padding: 8px; overflow-y: auto;
+      pointer-events: auto;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 11px; line-height: 1.4;
+    `;
+    
+    const streamHeader = document.createElement("div");
+    streamHeader.style.cssText = "color: #0ff; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,255,255,0.3); padding-bottom: 4px;";
+    streamHeader.textContent = "🎵 AUDIO STREAM";
+    
+    this._streamEl = document.createElement("div");
+    this._streamEl.style.cssText = "white-space: pre-wrap; word-break: break-word; font-size: 10px;";
+    streamPanel.append(streamHeader, this._streamEl);
 
     this._el.appendChild(panel);
+    this._el.appendChild(streamPanel);
     document.body.appendChild(this._el);
 
     // Toggle with F3
     window.addEventListener("keydown", (e) => {
       if (e.key === "F3") {
         e.preventDefault();
+        console.log("F3 pressed, toggling audio debug overlay");
         this.toggle();
+        
+        // Also toggle Director and Poet overlays
+        const debugOverlay = (window as any).__OAV__?.debug;
+        console.log("Debug overlay available:", !!debugOverlay);
+        if (debugOverlay && debugOverlay.toggleF3Overlays) {
+          console.log("Calling toggleF3Overlays");
+          debugOverlay.toggleF3Overlays();
+        } else {
+          console.log("toggleF3Overlays not available");
+        }
       }
     });
   }
@@ -92,6 +124,66 @@ export class AudioDebugOverlay {
   toggle(): void {
     this._visible = !this._visible;
     this._el.style.display = this._visible ? "block" : "none";
+    
+    // Force immediate update when showing
+    if (this._visible) {
+      // Try to get the most recent frame data from main loop
+      const oav = (window as any).__OAV__;
+      if (oav?.audioDebug?._lastFrame) {
+        this.update(oav.audioDebug._lastFrame);
+      } else if (oav?.audio) {
+        const audio = oav.audio;
+        const audioDbgFrame: AudioDebugFrame = {
+          amplitude: audio.amplitude,
+          bass: audio.bass,
+          brightness: audio.brightness,
+          mid: (audio as any).mid ?? 0,
+          high: (audio as any).high ?? 0,
+          beatHit: audio.beatHit,
+          rhythmicIntensity: (audio as any).rhythmicIntensity ?? 0,
+          spectralCentroid: (audio as any).spectralCentroid ?? 0,
+          // Audio parameters
+          subLevel: (audio as any).subLevel ?? 0,
+          harmonicLevel: (audio as any).harmonicLevel ?? 0,
+          noiseLevel: (audio as any).noiseLevel ?? 0,
+          padLevel: (audio as any).padLevel ?? 0,
+          filterFreq: (audio as any).filterFreq ?? 0,
+          filterRes: (audio as any).filterRes ?? 0,
+          lfoRate: (audio as any).lfoRate ?? 0,
+          lfoDepth: (audio as any).lfoDepth ?? 0,
+          reverbWet: (audio as any).reverbWet ?? 0,
+          delayTime: (audio as any).delayTime ?? 0,
+          delayFeedback: (audio as any).delayFeedback ?? 0,
+          distortion: (audio as any).distortion ?? 0,
+          masterLevel: (audio as any).masterLevel ?? 0,
+          tempo: (audio as any).getParams?.()?.tempo ?? 120,
+          audioStarted: (audio as any).audioStarted ?? false,
+        };
+        this.update(audioDbgFrame);
+      } else if (this._lastFrame) {
+        // Fallback to last known frame
+        this.update(this._lastFrame);
+      }
+    }
+  }
+
+  /** Update only the audio stream panel (called when new audio logs arrive) */
+  updateStream(): void {
+    if (!this._visible) {
+      console.log("Audio stream not visible, skipping update");
+      return;
+    }
+    
+    console.log("Updating audio stream panel");
+    const debugOverlay = (window as any).__OAV__?.debug;
+    if (debugOverlay && debugOverlay.getAudioStreamLog) {
+      const streamLog = debugOverlay.getAudioStreamLog();
+      console.log("Audio stream log length:", streamLog.length);
+      this._streamEl.innerHTML = streamLog;
+      this._streamEl.scrollTop = this._streamEl.scrollHeight;
+    } else {
+      console.log("Debug overlay or getAudioStreamLog not available");
+    }
   }
 
   /** Called each frame with current audio state. Only updates DOM if visible. */
@@ -124,6 +216,14 @@ export class AudioDebugOverlay {
       `reverb: ${this._bar(frame.reverbWet)}` +
       `\ndelay: ${frame.delayTime.toFixed(2)}s feedback:${this._bar(frame.delayFeedback)}` +
       `\ndistortion: ${this._bar(frame.distortion)}`;
+      
+    // Audio Stream - get from debug overlay log
+    const debugOverlay = (window as any).__OAV__?.debug;
+    if (debugOverlay && debugOverlay.getAudioStreamLog) {
+      const streamLog = debugOverlay.getAudioStreamLog();
+      this._streamEl.innerHTML = streamLog;
+      this._streamEl.scrollTop = this._streamEl.scrollHeight;
+    }
   }
 
   private _body(sectionEl: HTMLDivElement): HTMLDivElement {

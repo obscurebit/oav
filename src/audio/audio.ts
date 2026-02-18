@@ -3,6 +3,8 @@
  * Exposes metrics each frame via pull model (no events).
  */
 
+import { LofiPlayer, type LofiTrack } from "./lofi";
+
 export class Audio {
   private _ctx: AudioContext | null = null;
   private _analyser: AnalyserNode | null = null;
@@ -40,6 +42,10 @@ export class Audio {
   private _beatThreshold = 0.3;
   private _rhythmicDecay = 0.95;
 
+  // Lofi music system
+  private _lofiPlayer: LofiPlayer | null = null;
+  private _lofiEnabled = false;
+
   /** Initialize the AudioContext (must be called from a user gesture). */
   init(): void {
     if (this._ctx) return;
@@ -54,6 +60,9 @@ export class Audio {
     const bufferLength = this._analyser.frequencyBinCount;
     this._freqData = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
     this._timeData = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
+
+    // Initialize lofi player
+    this._lofiPlayer = new LofiPlayer(this._ctx);
   }
 
   /** Load and play an audio buffer from a URL. Loops by default. */
@@ -545,6 +554,95 @@ export class Audio {
 
   get started(): boolean {
     return this._started;
+  }
+
+  // --- Lofi Music Controls ---
+
+  /** Get all available lofi tracks */
+  getLofiTracks(): LofiTrack[] {
+    return this._lofiPlayer?.getTracks() ?? [];
+  }
+
+  /** Get current lofi track */
+  getCurrentLofiTrack(): LofiTrack | null {
+    return this._lofiPlayer?.getCurrentTrack() ?? null;
+  }
+
+  /** Check if lofi is playing */
+  get lofiPlaying(): boolean {
+    return this._lofiPlayer?.isPlaying ?? false;
+  }
+
+  /** Enable/disable lofi music */
+  setLofiEnabled(enabled: boolean): void {
+    this._lofiEnabled = enabled;
+    if (!enabled && this._lofiPlayer) {
+      this._lofiPlayer.stop();
+    }
+  }
+
+  /** Get lofi enabled state */
+  get lofiEnabled(): boolean {
+    return this._lofiEnabled;
+  }
+
+  /** Play a lofi track by ID */
+  async playLofiTrack(trackId: string): Promise<void> {
+    if (!this._lofiEnabled || !this._lofiPlayer) return;
+    
+    try {
+      await this._lofiPlayer.loadTrack(trackId);
+      await this._lofiPlayer.play();
+      
+      // Connect lofi to main audio system for analysis
+      if (this._ctx && this._lofiPlayer) {
+        this._lofiPlayer.getAudioNode().connect(this._gainNode!);
+      }
+    } catch (error) {
+      console.error('Failed to play lofi track:', error);
+    }
+  }
+
+  /** Crossfade to a new lofi track */
+  async crossfadeLofiTrack(trackId: string, duration: number = 2): Promise<void> {
+    if (!this._lofiEnabled || !this._lofiPlayer) return;
+    
+    try {
+      await this._lofiPlayer.crossfadeTo(trackId, duration);
+    } catch (error) {
+      console.error('Failed to crossfade lofi track:', error);
+    }
+  }
+
+  /** Stop lofi playback */
+  stopLofi(): void {
+    if (this._lofiPlayer) {
+      this._lofiPlayer.stop();
+    }
+  }
+
+  /** Set lofi volume */
+  setLofiVolume(volume: number): void {
+    if (this._lofiPlayer) {
+      this._lofiPlayer.setVolume(volume);
+    }
+  }
+
+  /** Get lofi volume */
+  get lofiVolume(): number {
+    return this._lofiPlayer?.volume ?? 0;
+  }
+
+  /** Get lofi track by mood */
+  getLofiTrackByMood(mood: LofiTrack["mood"]): LofiTrack | null {
+    return this._lofiPlayer?.getTrackByMood(mood) ?? null;
+  }
+
+  /** Play a random lofi track */
+  async playRandomLofiTrack(): Promise<void> {
+    if (!this._lofiPlayer) return;
+    const track = this._lofiPlayer.getRandomTrack();
+    await this.playLofiTrack(track.id);
   }
 
   dispose(): void {

@@ -217,7 +217,15 @@ export class GPUSpringSystem {
 
   /** Compute spring forces on CPU, then integrate on GPU. */
   update(dt: number, time: number): void {
-    if (this._nodeCount === 0) return;
+    if (this._nodeCount === 0) {
+      // Ensure transform feedback is completely unbound when no nodes
+      const gl = this._gl;
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      gl.bindVertexArray(null);
+      return;
+    }
 
     // --- CPU: compute spring forces (Hooke's law + damping) ---
     // Zero force accumulators
@@ -315,6 +323,7 @@ export class GPUSpringSystem {
     gl.disable(gl.RASTERIZER_DISCARD);
 
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
     gl.bindVertexArray(null);
 
     this._current = writeIdx;
@@ -334,6 +343,12 @@ export class GPUSpringSystem {
     }
 
     const gl = this._gl;
+
+    // Completely reset all transform feedback state before any buffer operations
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE); // additive

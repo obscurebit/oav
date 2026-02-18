@@ -536,40 +536,50 @@ const applyPresetTool: ToolDefinition = {
     name: "apply_preset",
     description:
       `Apply a named visual preset — a curated combination of parameter changes that create a specific aesthetic. Each preset smoothly transitions multiple params at once.
-Available presets:
-- "noir": desaturated, high contrast, dark, grain
-- "vaporwave": pink/cyan hue, high saturation, bloom, pixelate
-- "glitch_art": glitch, aberration, edge, strobe
-- "underwater": blue hue, low contrast, wobble, bloom
-- "fire": red/orange hue, high intensity, warp, ridge
-- "ice": cyan hue, low saturation, high contrast, cells
-- "psychedelic": high saturation, spin, symmetry, warp, bloom
-- "minimal": low intensity, no warp, no effects, clean
-- "cosmic": purple hue, bloom, high octaves, zoom out
-- "industrial": desaturated, ridge, grain, high contrast, edge
-- "dream": soft bloom, gentle wobble, warm tones
-- "nightmare": inverted, glitch, high speed, aberration
-- "crystal": high contrast, cells, symmetry, cool hues
-- "organic": high warp, warm tones, soft bloom
-- "digital": pixelate, edge, glitch, high speed
-- "zen": very slow, minimal effects, calm
-- "storm": high speed, warp, strobe, aberration
-- "aurora": green/blue hue, bloom, wobble
-- "lava": red/orange hue, high warp, ridge
-- "fireworks": warm burst colors, high contrast, dark sky + GPU firework bursts
-- "jello": soft, wobbling spring mesh with pink/purple hues + interactive jello physics
-- "cloth": fabric-like hanging mesh with blue tones, realistic cloth behavior + higher resolution
-- "sparkle_field": cool blue/purple tones with ambient sparkle particles across screen
-- "electric_storm": high energy, strobing, with electric particle bursts + jiggling spring mesh
 
-Word presets - dramatic scene titles with matching visual themes:
-- Intro words: "emergence", "genesis", "the_void_stirs", "first_light", "awakening", "from_nothing", "signal", "origin"
-- Build words: "complexity", "the_pattern_grows", "deep_structure", "convergence", "lattice", "unfolding", "tessellation"  
-- Climax words: "rupture", "supernova", "the_storm", "critical_mass", "detonation", "singularity", "overload", "ignition"
-- Outro words: "dissolution", "ash", "the_long_fade", "entropy", "remnant", "afterglow", "silence", "return"
-- "void": extreme zoom, spin, warp, darkobe, vivid color, zoomed out, fast, warm bursts
-- "void": near-zero intensity, invert, slow, dark
-- "reset": return all params to defaults`,
+🎨 VISUAL PRESETS (with matching audio):\n🔥 INTENSE/ENERGETIC:
+- "fire": hot, intense, high energy, aggressive, passionate (matching intense audio)
+- "lightning": electrical, intense, dramatic, powerful, stormy (matching intense audio)
+- "storm": turbulent, intense, chaotic, aggressive, energetic (matching intense audio)
+- "nightmare": distorted, aggressive, dark, unsettling, intense (matching intense audio)
+- "electric_storm": high energy, strobing, electric, chaotic, intense (matching intense audio)
+
+❄️ COLD/COOL:
+- "ice": cold, icy, crystalline, sharp, minimalist, clean (matching cool audio)
+- "aurora": atmospheric, flowing, cool, ethereal, gentle (matching peaceful audio)
+- "crystal": clear, bright, geometric, structured, clean (matching clear audio)
+- "underwater": flowing, muffled, cool, deep, mysterious (matching mysterious audio)
+
+🌊 WARM/ORGANIC:
+- "lava": hot, flowing, organic, intense, volcanic (matching intense audio)
+- "organic": natural, flowing, warm, textured, alive (matching warm audio)
+- "dream": soft, gentle, warm, ethereal, peaceful (matching gentle audio)
+
+🌌 PSYCHEDELIC/ABSTRACT:
+- "psychedelic": trippy, resonant, colorful, warped, surreal (matching trippy audio)
+- "vaporwave": nostalgic, dreamy, synthetic, retro, cool (matching dreamy audio)
+- "glitch_art": distorted, digital, chaotic, noisy, broken (matching chaotic audio)
+- "cosmic": spacious, ethereal, vast, mysterious, otherworldly (matching ethereal audio)
+
+🏙️ INDUSTRIAL/MECHANICAL:
+- "industrial": mechanical, harsh, metallic, structured, gritty (matching harsh audio)
+- "digital": electronic, sharp, pixelated, clean, modern (matching technical audio)
+- "minimal": clean, simple, restrained, quiet, focused (matching calm audio)
+- "noir": dark, moody, cinematic, dramatic, mysterious (matching moody audio)
+
+🧘 PEACEFUL/CALM:
+- "zen": peaceful, calm, meditative, slow, balanced (matching serene audio)
+- "minimal": clean, simple, restrained, quiet, focused (matching calm audio)
+- "dream": soft, gentle, warm, ethereal, peaceful (matching peaceful audio)
+- "aurora": atmospheric, flowing, cool, ethereal, gentle (matching peaceful audio)
+
+🎭 DRAMATIC/CINEMATIC:
+- "noir": dark, moody, cinematic, dramatic, mysterious (matching dramatic audio)
+- "lightning": electrical, intense, dramatic, powerful, stormy (matching intense audio)
+- "fireworks": celebratory, bright, explosive, joyful, festive (matching joyful audio)
+- "nightmare": distorted, aggressive, dark, unsettling, intense (matching intense audio)
+
+💡 Each preset includes matching audio atmosphere. Use apply_preset for complete audiovisual experiences.\n\n🎯 CONTEXT AWARENESS: This tool changes both visual and audio parameters simultaneously. Consider the current emotional state and typing activity when choosing a preset.`,
     parameters: {
       type: "object",
       properties: {
@@ -594,6 +604,297 @@ Word presets - dramatic scene titles with matching visual themes:
         },
       },
       required: ["preset"],
+    },
+  },
+};
+
+// --- Audio-only preset tool ---
+
+const applyAudioPresetTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "apply_audio_preset",
+    description:
+      `Apply a named typing audio preset — curated audio parameter combinations that create specific typing sound atmospheres. These affect ONLY typing sounds and clear ambient audio layers.
+
+🎹 TYPING PRESETS (rhythm, noise, percussive):
+- "morse_code": rhythmic beeps like morse code (high frequency, rhythmic)
+- "typewriter": mechanical typewriter clicks (noisy, percussive)
+- "subtle_beat": gentle background rhythm (soft, warm)
+- "impact_beat": strong percussive hits (powerful, rhythmic)
+- "static_hiss": continuous static noise (noisy, ambient)
+- "static_beat": static with rhythmic pulses (noisy, rhythmic)
+- "loud_static_beep": piercing static beeps (harsh, high energy)
+- "quiet_static_beep": soft background static beeps (gentle, ambient)
+- "raindrops": gentle raindrop sounds (soft, natural)
+
+🎹 LEGACY AMBIENT PRESETS (also available but better with apply_ambient_audio_preset):
+- "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
+- "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
+- "crystal", "organic", "digital", "zen", "storm", "aurora", "lava"
+
+💡 Use this for typing atmospheres. Use apply_ambient_audio_preset for mood setting.\n\n🎯 CONTEXT AWARENESS: This tool clears all ambient audio layers to focus purely on typing sounds. Consider the current visual mood when choosing a typing preset.`,
+    parameters: {
+      type: "object",
+      properties: {
+        preset: {
+          type: "string",
+          enum: [
+            "morse_code", "typewriter", "subtle_beat", "impact_beat", "static_hiss", 
+            "static_beat", "loud_static_beep", "quiet_static_beep", "raindrops",
+            "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
+            "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
+            "crystal", "organic", "digital", "zen", "storm", "aurora", "lava"
+          ],
+          description: "The audio preset to apply.",
+        },
+        intensity_scale: {
+          type: "number",
+          description: "Optional scale factor 0.1-2.0 for how strongly to apply the audio preset (default 1.0).",
+        },
+      },
+      required: ["preset"],
+    },
+  },
+};
+
+// --- Ambient audio preset tool ---
+
+const applyAmbientAudioPresetTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "apply_ambient_audio_preset",
+    description:
+      `Apply a named ambient audio preset — curated atmospheric soundscapes that set the overall mood. These focus on traditional audio parameters (sub bass, harmonics, pads, reverb) without typing-specific effects.
+
+🎵 AMBIENT PRESETS (atmospheric soundscapes):
+- "noir": dark, moody atmosphere
+- "vaporwave": dreamy, nostalgic atmosphere
+- "glitch_art": distorted, glitchy atmosphere
+- "underwater": flowing, muffled atmosphere
+- "fire": hot, intense atmosphere
+- "ice": cold, icy atmosphere
+- "psychedelic": trippy, resonant atmosphere
+- "minimal": clean, minimal atmosphere
+- "cosmic": spacious, ethereal atmosphere
+- "industrial": mechanical, harsh atmosphere
+- "dream": soft, gentle atmosphere
+- "nightmare": distorted, aggressive atmosphere
+- "crystal": clear, bright atmosphere
+- "organic": natural, flowing atmosphere
+- "digital": electronic, sharp atmosphere
+- "zen": peaceful, calm atmosphere
+- "storm": turbulent, intense atmosphere
+- "aurora": atmospheric, flowing atmosphere
+- "lava": hot, intense atmosphere
+
+💡 Use this for mood setting. Use apply_audio_preset for typing sounds.\n\n🎯 CONTEXT AWARENESS: This tool sets the foundational audio atmosphere. Consider current visual mood and typing activity when choosing an ambient preset.`,
+    parameters: {
+      type: "object",
+      properties: {
+        preset: {
+          type: "string",
+          enum: [
+            "noir", "vaporwave", "glitch_art", "underwater", "fire", "ice",
+            "psychedelic", "minimal", "cosmic", "industrial", "dream", "nightmare",
+            "crystal", "organic", "digital", "zen", "storm", "aurora", "lava"
+          ],
+          description: "The ambient audio preset to apply.",
+        },
+        intensity_scale: {
+          type: "number",
+          description: "Optional scale factor 0.1-2.0 for how strongly to apply the ambient preset (default 1.0).",
+        },
+      },
+      required: ["preset"],
+    },
+  },
+};
+
+// --- Audio preset listing tool ---
+
+const listAudioPresetsTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "list_audio_presets",
+    description:
+      `List all available audio presets with their descriptions. Use this to discover typing and ambient audio options.
+
+Returns a comprehensive list of:
+🎹 TYPING PRESETS (apply_audio_preset):
+- morse_code, typewriter, subtle_beat, impact_beat, static_hiss, static_beat, loud_static_beep, quiet_static_beep, raindrops
+
+🎵 AMBIENT PRESETS (apply_ambient_audio_preset):
+- noir, vaporwave, glitch_art, underwater, fire, ice, psychedelic, minimal, cosmic, industrial, dream, nightmare, crystal, organic, digital, zen, storm, aurora, lava
+
+🎨 VISUAL+AUDIO PRESETS (apply_preset):
+- All visual presets with matching audio atmospheres`,
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+};
+
+// --- Visual preset listing tool ---
+
+const listVisualPresetsTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "list_visual_presets",
+    description:
+      `List all available visual presets with descriptive tags and mood indicators. Use this to discover visual styles that match the current emotional state.
+
+🎨 VISUAL PRESETS (apply_preset):
+🔥 INTENSE/ENERGETIC:
+- "fire": hot, intense, high energy, aggressive, passionate
+- "lightning": electrical, intense, dramatic, powerful, stormy
+- "storm": turbulent, intense, chaotic, aggressive, energetic
+- "nightmare": distorted, aggressive, dark, unsettling, intense
+- "electric_storm": high energy, strobing, electric, chaotic, intense
+
+❄️ COLD/COOL:
+- "ice": cold, icy, crystalline, sharp, minimalist, clean
+- "aurora": atmospheric, flowing, cool, ethereal, gentle
+- "crystal": clear, bright, geometric, structured, clean
+- "underwater": flowing, muffled, cool, deep, mysterious
+
+🌊 WARM/ORGANIC:
+- "lava": hot, flowing, organic, intense, volcanic
+- "fire": hot, intense, warm, energetic, passionate
+- "organic": natural, flowing, warm, textured, alive
+- "dream": soft, gentle, warm, ethereal, peaceful
+
+🌌 PSYCHEDELIC/ABSTRACT:
+- "psychedelic": trippy, resonant, colorful, warped, surreal
+- "vaporwave": nostalgic, dreamy, synthetic, retro, cool
+- "glitch_art": distorted, digital, chaotic, noisy, broken
+- "cosmic": spacious, ethereal, vast, mysterious, otherworldly
+
+🏙️ INDUSTRIAL/MECHANICAL:
+- "industrial": mechanical, harsh, metallic, structured, gritty
+- "digital": electronic, sharp, pixelated, clean, modern
+- "minimal": clean, simple, restrained, quiet, focused
+- "noir": dark, moody, cinematic, dramatic, mysterious
+
+🧘 PEACEFUL/CALM:
+- "zen": peaceful, calm, meditative, slow, balanced
+- "minimal": clean, simple, restrained, quiet, focused
+- "dream": soft, gentle, warm, ethereal, peaceful
+- "aurora": atmospheric, flowing, cool, ethereal, gentle
+
+🎭 DRAMATIC/CINEMATIC:
+- "noir": dark, moody, cinematic, dramatic, mysterious
+- "lightning": electrical, intense, dramatic, powerful, stormy
+- "fireworks": celebratory, bright, explosive, joyful, festive
+- "nightmare": distorted, aggressive, dark, unsettling, intense
+
+💡 Tags help match presets to emotional states. Use apply_preset to apply both visual and matching audio.`,
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+};
+
+// --- Lofi Music Tools ---
+
+const playLofiTrackTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "play_lofi_track",
+    description: "Play a lofi music track by ID. Use this to set the background music atmosphere.",
+    parameters: {
+      type: "object",
+      properties: {
+        track_id: {
+          type: "string",
+          description: "ID of the lofi track to play (e.g., 'rainy-study', 'midnight-coffee', 'dream-waves', 'nostalgic-beats', 'upbeat-morning')",
+        },
+      },
+      required: ["track_id"],
+    },
+  },
+};
+
+const crossfadeLofiTrackTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "crossfade_lofi_track",
+    description: "Smoothly crossfade to a new lofi track. Use this for seamless music transitions.",
+    parameters: {
+      type: "object",
+      properties: {
+        track_id: {
+          type: "string",
+          description: "ID of the lofi track to crossfade to",
+        },
+        duration: {
+          type: "number",
+          description: "Crossfade duration in seconds (default: 2)",
+        },
+      },
+      required: ["track_id"],
+    },
+  },
+};
+
+const stopLofiTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "stop_lofi",
+    description: "Stop lofi music playback. Use this to create silence or transition to no music.",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+};
+
+const setLofiVolumeTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "set_lofi_volume",
+    description: "Set the volume of lofi music (0.0 to 1.0). Use this to adjust music intensity.",
+    parameters: {
+      type: "object",
+      properties: {
+        volume: {
+          type: "number",
+          description: "Volume level from 0.0 (silent) to 1.0 (full volume)",
+        },
+      },
+      required: ["volume"],
+    },
+  },
+};
+
+const enableLofiTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "enable_lofi",
+    description: "Enable or disable lofi music system. Use this to turn music on/off.",
+    parameters: {
+      type: "object",
+      properties: {
+        enabled: {
+          type: "boolean",
+          description: "True to enable lofi music, false to disable",
+        },
+      },
+      required: ["enabled"],
+    },
+  },
+};
+
+const listLofiTracksTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "list_lofi_tracks",
+    description: "List all available lofi tracks with their descriptions and moods. Use this to discover music options.",
+    parameters: {
+      type: "object",
+      properties: {},
     },
   },
 };
@@ -626,6 +927,17 @@ export const ALL_TOOLS: ToolDefinition[] = [
   enhancedFireworkTool,
   // Preset combos
   applyPresetTool,
+  applyAudioPresetTool,
+  applyAmbientAudioPresetTool,
+  listAudioPresetsTool,
+  listVisualPresetsTool,
+  // Lofi music controls
+  playLofiTrackTool,
+  crossfadeLofiTrackTool,
+  stopLofiTool,
+  setLofiVolumeTool,
+  enableLofiTool,
+  listLofiTracksTool,
 ];
 
 /** Engine-only tools for the Director in dual-LLM mode (no speak/whisper — Poet handles words). */
@@ -649,6 +961,17 @@ export const ENGINE_TOOLS: ToolDefinition[] = [
   enhancedFireworkTool,
   // Preset combos
   applyPresetTool,
+  applyAudioPresetTool,
+  applyAmbientAudioPresetTool,
+  listAudioPresetsTool,
+  listVisualPresetsTool,
+  // Lofi music controls
+  playLofiTrackTool,
+  crossfadeLofiTrackTool,
+  stopLofiTool,
+  setLofiVolumeTool,
+  enableLofiTool,
+  listLofiTracksTool,
 ];
 
 // --- Feeling → parameter mapping for shift_mood ---

@@ -4,6 +4,8 @@
  * Pure DOM overlay on top of the canvas — does not interfere with WebGL.
  */
 
+import { AudioDebugOverlay, type AudioDebugFrame } from "./audio-debug-overlay";
+
 export interface DebugFrame {
   elapsed: number;
   dt: number;
@@ -57,6 +59,11 @@ export class DebugOverlay {
   private _visible = false;
   private _log: LogEntry[] = [];
   private _lastFrame: DebugFrame | null = null;
+  
+  // Throttling for overlay updates
+  private _lastDirectorUpdate = 0;
+  private _lastPoetUpdate = 0;
+  private _updateThrottleMs = 100; // Update at most every 100ms
 
   // Sections
   private _perfEl: HTMLDivElement;
@@ -68,6 +75,8 @@ export class DebugOverlay {
   private _logEl: HTMLDivElement; // Stream - comprehensive debug dump
   private _directorEl: HTMLDivElement; // Director - tool calls, decisions, errors only
   private _poetEl: HTMLDivElement; // Poet - generated text and style info
+  private _directorOverlay: HTMLDivElement;
+  private _poetOverlay: HTMLDivElement;
 
   constructor() {
     this._el = document.createElement("div");
@@ -98,37 +107,42 @@ export class DebugOverlay {
 
     left.append(this._perfEl, this._engineEl, this._llmEl, this._inputEl, this._moodEl, this._paramsEl);
 
-    // Director overlay - tool calls, decisions, errors only
-    const middle = document.createElement("div");
-    middle.style.cssText = `
-      position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 420px; max-height: calc(100vh - 16px);
+    // Create Director and Poet overlays for F3 toggle (not added to F2 layout)
+    const directorOverlay = document.createElement("div");
+    directorOverlay.style.cssText = `
+      position: absolute; top: 8px; left: 8px; width: 420px; max-height: calc(100vh - 16px);
       background: rgba(0,0,0,0.85); border: 1px solid rgba(255,165,0,0.5);
       border-radius: 4px; padding: 8px; overflow-y: auto;
       pointer-events: auto;
+      display: none;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 11px; line-height: 1.4;
     `;
-
+    
     const directorHeader = document.createElement("div");
     directorHeader.style.cssText = "color: #ffa500; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(255,165,0,0.4); padding-bottom: 4px;";
     directorHeader.textContent = `🎬 DIRECTOR - (${import.meta.env.VITE_LLM_MODEL || 'nemotron'})`;
     this._directorEl = document.createElement("div");
     this._directorEl.style.cssText = "color:#ffa500";
-    middle.append(directorHeader, this._directorEl);
-
-    // Poet overlay - generated text and style information
-    const bottomLeft = document.createElement("div");
-    bottomLeft.style.cssText = `
+    directorOverlay.append(directorHeader, this._directorEl);
+    
+    const poetOverlay = document.createElement("div");
+    poetOverlay.style.cssText = `
       position: absolute; bottom: 8px; left: 8px; width: 420px; height: 150px;
       background: rgba(0,0,0,0.85); border: 1px solid rgba(255,0,255,0.5);
       border-radius: 4px; padding: 8px; overflow-y: auto;
       pointer-events: auto;
+      display: none;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 11px; line-height: 1.4;
     `;
-
+    
     const poetHeader = document.createElement("div");
     poetHeader.style.cssText = "color: #ff00ff; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(255,0,255,0.4); padding-bottom: 4px;";
     poetHeader.textContent = `🎭 POET - (${import.meta.env.VITE_POET_MODEL || 'llama-4-scout'})`;
     this._poetEl = document.createElement("div");
     this._poetEl.style.cssText = "color:#ff00ff";
-    bottomLeft.append(poetHeader, this._poetEl);
+    poetOverlay.append(poetHeader, this._poetEl);
 
     // Stream overlay - comprehensive debug dump with timestamps
     const right = document.createElement("div");
@@ -146,8 +160,16 @@ export class DebugOverlay {
     this._logEl.style.cssText = "white-space: pre-wrap; word-break: break-word; font-size: 10px;";
     right.append(logHeader, this._logEl);
 
-    this._el.append(left, middle, bottomLeft, right);
+    this._el.append(left, right);
     document.body.appendChild(this._el);
+    
+    // Add Director and Poet overlays to DOM (separate from F2 layout)
+    document.body.appendChild(directorOverlay);
+    document.body.appendChild(poetOverlay);
+    
+    // Store references for F3 toggle
+    this._directorOverlay = directorOverlay;
+    this._poetOverlay = poetOverlay;
 
     // Toggle with F2 only
     window.addEventListener("keydown", (e) => {
@@ -172,14 +194,220 @@ export class DebugOverlay {
     this._el.style.display = this._visible ? "block" : "none";
   }
 
+  /** Toggle Director and Poet overlays (called by F3) */
+  toggleF3Overlays(): void {
+    const directorOverlay = (this as any)._directorOverlay;
+    const poetOverlay = (this)._poetOverlay;
+    
+    if (directorOverlay && poetOverlay) {
+      const isVisible = directorOverlay.style.display !== "none";
+      const newDisplay = isVisible ? "none" : "block";
+      
+      console.log(`[DEBUG] toggleF3Overlays: ${isVisible ? "HIDING" : "SHOWING"} overlays`);
+      
+      directorOverlay.style.display = newDisplay;
+      poetOverlay.style.display = newDisplay;
+    }
+  }
+
+  /** Get audio stream log for audio debug overlay */
+  getAudioStreamLog(): string {
+    // Filter only AUDIO-STREAM entries and format them
+    const audioLogs = this._log.filter(e => e.tag === "AUDIO-STREAM").slice(-50);
+    
+    if (audioLogs.length === 0) {
+      return "<span style='color:#666'>No audio stream data...</span>";
+    }
+    
+    // Calculate start time from first log entry
+    const startTime = this._log.length > 0 ? this._log[0].time : Date.now();
+    
+    return audioLogs.map(e => {
+      const secondsSinceStart = ((e.time - startTime) / 1000).toFixed(1).padStart(6);
+      const tagColor = this._tagColor(e.tag);
+      const tagBg = this._tagBackground(e.tag);
+      
+      // Add source-specific icons for better visual scanning
+      let icon = "";
+      if (e.tag === "AUDIO-STREAM") icon = "🎵";
+      
+      return `<span style="color:#666">${secondsSinceStart}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold">${icon}[${e.tag}]</span> ${this._escHtml(e.text)}`;
+    }).join("<br>");
+  }
+
+  /** Update Director and Poet overlays when F3 is visible */
+  updateF3Overlays(): void {
+    const directorOverlay = this._directorOverlay;
+    const poetOverlay = this._poetOverlay;
+    
+    // Debug: log visibility state
+    const directorVisible = directorOverlay && directorOverlay.style.display !== "none";
+    const poetVisible = poetOverlay && poetOverlay.style.display !== "none";
+    
+    const now = Date.now();
+    
+    // Throttle Director overlay updates
+    if (directorVisible && now - this._lastDirectorUpdate > this._updateThrottleMs) {
+      console.log("[DEBUG] Updating Director overlay (throttled)");
+      this._renderDirectorOverlay();
+      this._lastDirectorUpdate = now;
+    }
+    
+    // Throttle Poet overlay updates
+    if (poetVisible && now - this._lastPoetUpdate > this._updateThrottleMs) {
+      console.log("[DEBUG] Updating Poet overlay (throttled)");
+      this._renderPoetOverlay();
+      this._lastPoetUpdate = now;
+    }
+  }
+
+  /** Render Director overlay content */
+  private _renderDirectorOverlay(): void {
+    console.log("[DEBUG] _renderDirectorOverlay called");
+    // Director overlay - show only tool calls, decisions, and errors (no LLM responses)
+    const directorLogs = this._log.filter(entry => {
+      // Show tool calls, presets, director actions, errors, and LLM responses
+      return entry.tag === "TOOL" || 
+             entry.tag === "DIRECTOR" || 
+             entry.tag === "PRESET" ||
+             entry.tag === "ERROR" ||
+             (entry.tag === "LLM" && !entry.text.includes("raw HTTP response")) ||
+             (entry.tag === "DIRECTOR-LLM" && !entry.text.includes("raw HTTP response")) ||
+             entry.tag === "THINK";
+    }).slice(-30); // Show last 30 director-related entries
+    
+    console.log(`[DEBUG] Director logs found: ${directorLogs.length}`);
+    
+    if (directorLogs.length > 0) {
+      const directorContent = directorLogs.map(entry => {
+        let tagColor = "#ffa500";
+        let prefix = "";
+        
+        if (entry.tag === "TOOL") {
+          tagColor = "#0f0";
+          prefix = "🔧";
+        } else if (entry.tag === "PRESET") {
+          tagColor = "#f80";
+          prefix = "🎨";
+        } else if (entry.tag === "ERROR") {
+          tagColor = "#f44";
+          prefix = "❌";
+        } else if (entry.tag === "DIRECTOR") {
+          tagColor = "#ffa500";
+          prefix = "🎬";
+        } else if (entry.tag === "LLM") {
+          tagColor = "#ff0";
+          prefix = "🤖 LLM";
+          const id = `llm-${Math.random().toString(36).substr(2, 9)}`;
+          return `<div style="margin-bottom: 2px"><div style="color:${tagColor};cursor:pointer;font-weight:bold" onclick="var next=this.nextElementSibling;next.style.display=next.style.display==='block'?'none':'block'">${prefix} [${entry.tag}]</div><pre id="${id}" style="display:block;margin:4px 0;padding:4px;background:rgba(255,255,0,0.1);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(entry.text)}</pre></div>`;
+        } else if (entry.tag === "THINK") {
+          tagColor = "#a0a";
+          prefix = "💭 THINK";
+          const id = `think-${Math.random().toString(36).substr(2, 9)}`;
+          return `<div style="margin-bottom: 2px"><div style="color:${tagColor};cursor:pointer;font-weight:bold" onclick="var next=this.nextElementSibling;next.style.display=next.style.display==='block'?'none':'block'">${prefix} [${entry.tag}]</div><pre id="${id}" style="display:block;margin:4px 0;padding:4px;background:rgba(160,160,255,0.1);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(entry.text)}</pre></div>`;
+        }
+        
+        return `<div style="margin-bottom: 2px"><span style="color:${tagColor}">${prefix} [${entry.tag}]</span> ${entry.text}</div>`;
+      }).join('');
+      this._directorEl.innerHTML = directorContent;
+      console.log("[DEBUG] Director overlay updated with content length:", directorContent.length);
+    } else {
+      this._directorEl.innerHTML = "<span style='color:#888'>No director actions...</span>";
+      console.log("[DEBUG] Director overlay set to empty");
+    }
+  }
+
+  /** Render Poet overlay content */
+  private _renderPoetOverlay(): void {
+    console.log("[DEBUG] _renderPoetOverlay called");
+    // Poet overlay - show generated text with style information
+    const poetLogs = this._log.filter(entry => {
+      // Show poet output and style information
+      return entry.tag === "POET" || 
+             entry.tag === "SPEAK" ||
+             (entry.tag === "LLM" && entry.text.includes("style:"));
+    }).slice(-30); // Show last 30 poet-related entries
+    
+    console.log(`[DEBUG] Poet logs found: ${poetLogs.length}`);
+    
+    if (poetLogs.length > 0) {
+      const poetContent = poetLogs.map(entry => {
+        let tagColor = "#ff00ff";
+        let prefix = "";
+        let styleInfo = "";
+        
+        if (entry.tag === "POET") {
+          tagColor = "#ff00ff";
+          prefix = "✍️";
+          // Extract the kind from the text (e.g., "voice: \"words\"")
+          const match = entry.text.match(/^(\w+):\s*"(.*)"$/);
+          if (match) {
+            const [, kind, words] = match;
+            styleInfo = `<span style="color:#888;font-style:italic">[${kind}]</span> `;
+          }
+        } else if (entry.tag === "SPEAK") {
+          tagColor = "#ff0";
+          prefix = "🗣️";
+          const match = entry.text.match(/^(\w+):\s*"(.*)"$/);
+          if (match) {
+            const [, kind, words] = match;
+            styleInfo = `<span style="color:#888;font-style:italic">[${kind}]</span> `;
+          }
+        } else if (entry.tag === "LLM" && entry.text.includes("style:")) {
+          tagColor = "#ff0";
+          prefix = "🎭";
+          const styleMatch = entry.text.match(/style:\s*(\w+)/);
+          if (styleMatch) {
+            styleInfo = `<span style="color:#888;font-style:italic">[${styleMatch[1]}]</span> `;
+          }
+        }
+        
+        return `<div style="margin-bottom: 2px"><span style="color:${tagColor}">${prefix} [${entry.tag}]</span> ${styleInfo}${entry.text}</div>`;
+      }).join('');
+      this._poetEl.innerHTML = poetContent;
+    } else {
+      this._poetEl.innerHTML = "<span style='color:#888'>No poet output...</span>";
+    }
+  }
+
+  /** Force immediate overlay update if visible and new content was added */
+  private _forceOverlayUpdateIfNeeded(): void {
+    const directorVisible = this._directorOverlay && this._directorOverlay.style.display !== "none";
+    const poetVisible = this._poetOverlay && this._poetOverlay.style.display !== "none";
+    
+    if (directorVisible) {
+      this._lastDirectorUpdate = 0; // Reset throttle to force immediate update
+    }
+    if (poetVisible) {
+      this._lastPoetUpdate = 0; // Reset throttle to force immediate update
+    }
+  }
   
-  
+  /** Get the most recent audio frame data from main loop */
+  getLatestAudioFrame(): AudioDebugFrame | null {
+    // Try to get the most recent frame from the main loop's last update
+    const oav = (window as any).__OAV__;
+    if (oav?.audioDebug?._lastFrame) {
+      return oav.audioDebug._lastFrame;
+    }
+    return null;
+  }
+
   /** Log an event to the stream panel. */
   log(tag: string, text: string): void {
-    const time = this._lastFrame?.elapsed ?? 0;
+    const time = Date.now();
     this._log.push({ time, tag, text });
     if (this._log.length > MAX_LOG) this._log.shift();
+    this._forceOverlayUpdateIfNeeded();
     if (this._visible) this._renderLog();
+    
+    // Also update audio stream overlay if this is an AUDIO-STREAM entry
+    if (tag === "AUDIO-STREAM") {
+      const audioDebugOverlay = (window as any).__OAV__?.audioDebug;
+      if (audioDebugOverlay && audioDebugOverlay.updateStream) {
+        audioDebugOverlay.updateStream();
+      }
+    }
   }
 
   // Specialized logging methods for clearer intent
@@ -248,106 +476,6 @@ export class DebugOverlay {
     this._body(this._llmEl).innerHTML =
       `director: <b style="color:${dirColor}">${dirLabel}</b>  poet: ${poetLabel}`;
 
-    // Director overlay - show tool calls, decisions, errors, and LLM summaries (no raw HTTP responses, no Poet LLM)
-    const directorLogs = this._log.filter(entry => {
-      // Show tool calls, decisions, errors, and Director LLM summaries but exclude raw HTTP responses and Poet LLM
-      return entry.tag === "TOOL" || 
-             entry.tag === "DIRECTOR" || 
-             entry.tag === "PRESET" ||
-             entry.tag === "ERROR" ||
-             (entry.tag === "LLM" && !entry.text.includes("raw HTTP response")) ||
-             (entry.tag === "DIRECTOR-LLM" && !entry.text.includes("raw HTTP response")) ||
-             entry.tag === "THINK";
-    }).slice(-30); // Show last 30 director-related entries
-    
-    if (directorLogs.length > 0) {
-      const directorContent = directorLogs.map(entry => {
-        let tagColor = "#ffa500";
-        let prefix = "";
-        
-        if (entry.tag === "TOOL") {
-          tagColor = "#0f0";
-          prefix = "🔧";
-        } else if (entry.tag === "PRESET") {
-          tagColor = "#f80";
-          prefix = "🎨";
-        } else if (entry.tag === "ERROR") {
-          tagColor = "#f44";
-          prefix = "❌";
-        } else if (entry.tag === "DIRECTOR") {
-          tagColor = "#ffa500";
-          prefix = "🎬";
-        } else if (entry.tag === "LLM") {
-          tagColor = "#ff0";
-          prefix = "🤖 LLM";
-          const id = `llm-${Math.random().toString(36).substr(2, 9)}`;
-          return `<div style="margin-bottom: 2px"><div style="color:${tagColor};cursor:pointer;font-weight:bold" onclick="var next=this.nextElementSibling;next.style.display=next.style.display==='block'?'none':'block'">${prefix} [${entry.tag}]</div><pre id="${id}" style="display:block;margin:4px 0;padding:4px;background:rgba(255,255,0,0.1);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(entry.text)}</pre></div>`;
-        } else if (entry.tag === "THINK") {
-          tagColor = "#a0a";
-          prefix = "💭 THINK";
-          const id = `think-${Math.random().toString(36).substr(2, 9)}`;
-          return `<div style="margin-bottom: 2px"><div style="color:${tagColor};cursor:pointer;font-weight:bold" onclick="var next=this.nextElementSibling;next.style.display=next.style.display==='block'?'none':'block'">${prefix} [${entry.tag}]</div><pre id="${id}" style="display:block;margin:4px 0;padding:4px;background:rgba(160,160,255,0.1);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(entry.text)}</pre></div>`;
-        }
-        
-        return `<div style="margin-bottom: 2px"><span style="color:${tagColor}">${prefix} [${entry.tag}]</span> ${entry.text}</div>`;
-      }).join('');
-      this._directorEl.innerHTML = directorContent;
-    } else {
-      this._directorEl.innerHTML = "<span style='color:#888'>No director actions...</span>";
-    }
-
-    // Poet overlay - show generated text with style information
-    const poetLogs = this._log.filter(entry => {
-      // Show poet output and style information
-      return entry.tag === "POET" || 
-             entry.tag === "SPEAK" ||
-             (entry.tag === "LLM" && entry.text.includes("style:"));
-    }).slice(-30); // Show last 30 poet-related entries
-    
-    if (poetLogs.length > 0) {
-      const poetContent = poetLogs.map(entry => {
-        let tagColor = "#ff00ff";
-        let prefix = "";
-        let styleInfo = "";
-        
-        if (entry.tag === "POET") {
-          tagColor = "#ff00ff";
-          prefix = "✍️";
-          // Extract the kind from the text (e.g., "voice: \"words\"")
-          const match = entry.text.match(/^(\w+):\s*"(.*)"$/);
-          if (match) {
-            const [, kind, words] = match;
-            styleInfo = `<span style="color:#888;font-style:italic">[${kind}]</span> `;
-            return `<span style="color:${tagColor}">${prefix} [POET]</span> ${styleInfo}"${words}"`;
-          }
-        } else if (entry.tag === "SPEAK") {
-          tagColor = "#ffff00";
-          prefix = "🗣️";
-          // Check if ambient
-          if (entry.text.includes("ambient:")) {
-            const words = entry.text.replace('ambient: "', '').replace('"', '');
-            return `<span style="color:${tagColor}">${prefix} [SPEAK]</span> <span style="color:#888;font-style:italic">[ambient]</span> "${words}"`;
-          }
-        } else if (entry.tag === "LLM" && entry.text.includes("style:")) {
-          tagColor = "#ff0";
-          prefix = "🎭";
-          // Extract magnitude and style
-          const match = entry.text.match(/magnitude: ([\d.]+) → style: (\w+)/);
-          if (match) {
-            const [, magnitude, style] = match;
-            const magColor = parseFloat(magnitude) > 0.7 ? "#f80" : parseFloat(magnitude) > 0.3 ? "#0f0" : "#888";
-            return `<span style="color:${tagColor}">${prefix} [LLM]</span> magnitude: <span style="color:${magColor}">${magnitude}</span> → style: <span style="color:#ff00ff;font-weight:bold">${style}</span>`;
-          }
-        }
-        
-        return `<span style="color:${tagColor}">${prefix} [${entry.tag}]</span> ${entry.text}`;
-      }).join('<br>');
-      this._poetEl.innerHTML = poetContent;
-    } else {
-      this._poetEl.innerHTML = "<span style='color:#888'>No poet output...</span>";
-    }
-
-    
     // Input gestures
     const pressLabel = frame.inputPressed
       ? `<span style="color:#0f0">PRESSED</span> (${frame.inputHold.toFixed(1)}s)`
@@ -390,14 +518,21 @@ export class DebugOverlay {
   private _renderLog(): void {
     // STREAM shows everything as a comprehensive debug dump with timestamps and color-coding
     // Include raw HTTP responses here (full debug dump) with collapsible LLM entries
-    const html = this._log.map(e => {
-      const t = e.time.toFixed(1).padStart(6);
+    // Exclude AUDIO-STREAM entries since they have their own dedicated overlay
+    
+    // Calculate start time from first log entry
+    const startTime = this._log.length > 0 ? this._log[0].time : Date.now();
+    
+    const html = this._log.filter(e => e.tag !== "AUDIO-STREAM").map(e => {
+      const secondsSinceStart = ((e.time - startTime) / 1000).toFixed(1).padStart(6);
       const tagColor = this._tagColor(e.tag);
       const tagBg = this._tagBackground(e.tag);
       
       // Add source-specific icons for better visual scanning
       let icon = "";
-      if (e.tag === "LLM") icon = "🤖";
+      if (e.tag === "SIM") icon = "⚙️";
+      else if (e.tag === "AUDIO-STREAM") icon = "🎵";
+      else if (e.tag === "LLM") icon = "🤖";
       else if (e.tag === "DIRECTOR-LLM") icon = "🎬🤖";
       else if (e.tag === "POET-LLM") icon = "✍️🤖";
       else if (e.tag === "TOOL") icon = "🔧";
@@ -413,10 +548,10 @@ export class DebugOverlay {
       // Make LLM entries collapsible for long content
       if ((e.tag === "LLM" || e.tag === "DIRECTOR-LLM" || e.tag === "POET-LLM") && e.text.length > 100) {
         const id = `stream-llm-${Math.random().toString(36).substr(2, 9)}`;
-        return `<div style="margin-bottom: 2px"><span style="color:#666">${t}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold;cursor:pointer" onclick="var next=this.parentElement.querySelector('.collapsible-content');next.style.display=next.style.display==='block'?'none':'block'">${icon}[${e.tag}]</span> <span style="color:#666;font-style:italic">${e.text.length > 100 ? e.text.substring(0, 100) + '...' : e.text}</span><pre id="${id}" class="collapsible-content" style="display:none;margin:4px 0;padding:4px;background:rgba(255,255,255,0.05);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(e.text)}</pre></div>`;
+        return `<div style="margin-bottom: 2px"><span style="color:#666">${secondsSinceStart}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold;cursor:pointer" onclick="var next=this.parentElement.querySelector('.collapsible-content');next.style.display=next.style.display==='block'?'none':'block'">${icon}[${e.tag}]</span> <span style="color:#666;font-style:italic">${e.text.length > 100 ? e.text.substring(0, 100) + '...' : e.text}</span><pre id="${id}" class="collapsible-content" style="display:none;margin:4px 0;padding:4px;background:rgba(255,255,255,0.05);border-radius:3px;font-size:9px;white-space:pre-wrap;word-break:break-word">${this._escHtml(e.text)}</pre></div>`;
       }
       
-      return `<span style="color:#666">${t}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold">${icon}[${e.tag}]</span> ${this._escHtml(e.text)}`;
+      return `<span style="color:#666">${secondsSinceStart}s</span> <span style="color:${tagColor};background:${tagBg};padding:1px 4px;border-radius:2px;font-weight:bold">${icon}[${e.tag}]</span> ${this._escHtml(e.text)}`;
     }).join("\n");
     this._logEl.innerHTML = html;
     this._logEl.scrollTop = this._logEl.scrollHeight;
@@ -424,6 +559,8 @@ export class DebugOverlay {
 
   private _tagColor(tag: string): string {
     switch (tag) {
+      case "SIM": return "#00f";
+      case "AUDIO-STREAM": return "#0ff";
       case "LLM": return "#f0f";
       case "THINK": return "#a0a";
       case "POET": return "#f9f";
@@ -446,6 +583,8 @@ export class DebugOverlay {
 
   private _tagBackground(tag: string): string {
     switch (tag) {
+      case "SIM": return "rgba(0,0,255,0.2)";
+      case "AUDIO-STREAM": return "rgba(0,255,255,0.2)";
       case "LLM": return "rgba(255,0,255,0.2)";
       case "THINK": return "rgba(160,160,255,0.2)";
       case "POET": return "rgba(255,153,255,0.2)";
