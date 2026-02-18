@@ -71,7 +71,11 @@ export class ManualMode {
     // Director will be disabled from main.ts
     const director = (window as any).__OAV__?.director;
     if (director) {
+      console.log("[MANUAL] Disabling Director, was enabled:", director.enabled);
       director.enabled = false;
+      console.log("[MANUAL] Director now disabled:", director.enabled);
+    } else {
+      console.log("[MANUAL] Director not found");
     }
   }
 
@@ -88,7 +92,7 @@ export class ManualMode {
     const current = this.deps.timeline.getTransitionState(currentTime);
     
     // Always ensure we have a scene, even if we can't get current state
-    const sceneId = current?.current?.sceneId || "intro";
+    const sceneId = current?.current?.sceneId || "build";
     
     console.log(`[MANUAL] Disabling auto-transitions, keeping scene: ${sceneId}`);
     
@@ -178,7 +182,7 @@ export class ManualMode {
   private createSceneControls(): void {
     const section = this.createSection("🎬 Scene Control");
     
-    const scenes = ["intro", "build", "climax", "outro"];
+    const scenes = ["build"];
     const buttonContainer = document.createElement("div");
     buttonContainer.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px;";
     
@@ -213,7 +217,8 @@ export class ManualMode {
       "Warm": ["lava", "organic", "dream"],
       "Psychedelic": ["psychedelic", "vaporwave", "glitch_art", "cosmic"],
       "Industrial": ["industrial", "digital", "minimal", "noir"],
-      "Calm": ["zen", "minimal", "dream", "aurora"]
+      "Calm": ["zen", "minimal", "dream", "aurora"],
+      "Physics": ["jello", "cloth", "electric_storm"]
     };
 
     Object.entries(categories).forEach(([category, presets]) => {

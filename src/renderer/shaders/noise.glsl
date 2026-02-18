@@ -64,6 +64,33 @@ vec3 palette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
   return a + b * cos(6.28318 * (c * t + d));
 }
 
+// Multi-color palette with 5 distinct colors
+vec3 multiPalette(float t, float split) {
+  float shifted = t + uPaletteShift;
+  
+  // Create 5 distinct color regions based on split parameter
+  float region1 = smoothstep(0.0, split, shifted);
+  float region2 = smoothstep(split, split * 2.0, shifted);
+  float region3 = smoothstep(split * 2.0, split * 3.0, shifted);
+  float region4 = smoothstep(split * 3.0, split * 4.0, shifted);
+  
+  // Base colors from main hue and secondary hues
+  vec3 color1 = palette(shifted, vec3(0.5), vec3(0.5), vec3(1.0), vec3(uHue));
+  vec3 color2 = palette(shifted + uHue2, vec3(0.5), vec3(0.5), vec3(1.0), vec3(uHue2));
+  vec3 color3 = palette(shifted + uHue3, vec3(0.5), vec3(0.5), vec3(1.0), vec3(uHue3));
+  vec3 color4 = palette(shifted + uHue + 0.5, vec3(0.5), vec3(0.5), vec3(0.8), vec3(uHue2 + 0.3));
+  vec3 color5 = palette(shifted + uHue2 + 0.7, vec3(0.5), vec3(0.5), vec3(1.2), vec3(uHue3 + 0.2));
+  
+  // Blend between colors based on region
+  vec3 result = color1;
+  result = mix(result, color2, region1);
+  result = mix(result, color3, region2);
+  result = mix(result, color4, region3);
+  result = mix(result, color5, region4);
+  
+  return result;
+}
+
 // Ridged noise — abs(noise) creates sharp ridges
 float ridgeNoise(vec2 p, int octaves) {
   float value = 0.0;

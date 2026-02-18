@@ -226,6 +226,8 @@ export const ALL_PARAM_NAMES = [
   "intensity", "speed", "hue",
   // Color & Tone
   "saturation", "contrast", "warmth", "gamma", "invert",
+  // Color Palette
+  "hue2", "hue3", "color_split", "palette_shift",
   // Geometry & Space
   "zoom", "rotation", "symmetry", "mirror_x", "mirror_y",
   // Pattern & Texture
@@ -235,6 +237,8 @@ export const ALL_PARAM_NAMES = [
   "drift_x", "drift_y", "spin", "wobble", "strobe",
   // Post-processing
   "bloom", "vignette", "aberration", "glitch", "feedback",
+  // Special Modes
+  "fire_mode",
 ];
 
 // --- Level 2: Parametric (mid-level, direct control) ---

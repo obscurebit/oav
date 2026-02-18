@@ -16,6 +16,12 @@ uniform float uBass;
 uniform float uBrightness;
 uniform float uPulse;
 
+// Color Palette Uniforms
+uniform float uHue2;
+uniform float uHue3;
+uniform float uColorSplit;
+uniform float uPaletteShift;
+
 #include "noise.glsl"
 #include "post.glsl"
 

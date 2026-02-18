@@ -52,6 +52,15 @@ export abstract class BaseScene implements Scene {
     gl.uniform1f(u.get("uGamma"), p.get("gamma"));
     gl.uniform1f(u.get("uInvert"), p.get("invert"));
 
+    // Color Palette
+    gl.uniform1f(u.get("uHue2"), p.get("hue2"));
+    gl.uniform1f(u.get("uHue3"), p.get("hue3"));
+    gl.uniform1f(u.get("uColorSplit"), p.get("color_split"));
+    gl.uniform1f(u.get("uPaletteShift"), p.get("palette_shift"));
+    
+    // Fire mode flag
+    gl.uniform1f(u.get("uFireMode"), p.get("fire_mode") || 0.0);
+
     // Geometry & Space
     gl.uniform1f(u.get("uZoom"), p.get("zoom"));
     gl.uniform1f(u.get("uRotation"), p.get("rotation"));

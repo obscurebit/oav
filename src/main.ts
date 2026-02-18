@@ -4,10 +4,7 @@ import type { DebugFrame } from "./debug-overlay";
 import {
   Renderer,
   SceneRegistry,
-  IntroScene,
   BuildScene,
-  ClimaxScene,
-  OutroScene,
 } from "./renderer";
 import { GPUParticleSystem } from "./renderer/particles/gpu-particles";
 import { GPUSpringSystem } from "./renderer/particles/gpu-springs";
@@ -29,10 +26,7 @@ if (!gl) {
 
 // --- Scene registry ---
 const registry = new SceneRegistry();
-registry.register(new IntroScene());
 registry.register(new BuildScene());
-registry.register(new ClimaxScene());
-registry.register(new OutroScene());
 
 // --- Engine core ---
 const clock = new Clock(120);
@@ -49,6 +43,28 @@ renderer.audio = audio;
 const gpuParticles = new GPUParticleSystem(gl);
 const gpuSprings = new GPUSpringSystem(gl);
 renderer.gpuParticles = gpuParticles;
+renderer.gpuSprings = gpuSprings;
+
+// Create a default spring mesh for immediate visual feedback
+/*
+gpuSprings.createGrid({
+  cols: 16,
+  rows: 12,
+  originX: -0.6,
+  originY: -0.4,
+  width: 1.2,
+  height: 0.8,
+  stiffness: 0.8,
+  damping: 0.02,
+  mass: 1.0,
+  pinnedRow: 11, // pin bottom row
+  color: [0.4, 0.7, 1.0],
+});
+gpuSprings.gravity = [0, -0.1];
+gpuSprings.damping = 0.02;
+gpuSprings.drawLines = true;
+gpuSprings.drawNodes = false;
+*/
 
 // No default mesh - create on demand via presets/LLM
 
@@ -590,6 +606,15 @@ params.define("warmth", -1, 1, 0);           // -1=cool blue shift, 0=neutral, 1
 params.define("gamma", 0.2, 3, 1);           // <1=brighter midtones, >1=darker midtones
 params.define("invert", 0, 1, 0);            // 0=normal, 1=fully inverted colors
 
+// --- Color Palette Parameters ---
+params.define("hue2", 0, 1, 0.3);            // Secondary hue for color mixing
+params.define("hue3", 0, 1, 0.6);            // Tertiary hue for triadic palettes
+params.define("color_split", 0, 1, 0);        // How much to split colors across the palette
+params.define("palette_shift", 0, 1, 0);      // Shifts the entire palette over time
+
+// --- Special Mode Flags ---
+params.define("fire_mode", 0, 1, 0);          // Fire mode flag for special fire rendering
+
 // --- Geometry & Space ---
 params.define("zoom", 0.2, 5, 1);            // camera zoom (affects pattern scale)
 params.define("rotation", -3.14, 3.14, 0);   // global rotation in radians
@@ -625,26 +650,26 @@ params.define("feedback", 0, 1, 0);          // temporal feedback / trails
 // --- Director-Controlled Timeline ---
 // Scenes only change when Director explicitly transitions
 // This gives the LLM full creative control over narrative flow
-const DIRECTOR_SCENES = ["intro", "build", "climax", "outro"];
+const DIRECTOR_SCENES = ["build"];
 let timelineEnd = 0;
-let lastScheduledScene = "intro";
+let lastScheduledScene = "build";
 
 function extendTimeline(count: number = 4): void {
   // Only seed initial timeline, then Director takes control
   if (timelineEnd === 0) {
-    // Start with intro only
-    const baseDuration = 30; // Fixed intro duration
+    // Start with build scene
+    const baseDuration = 30; // Fixed build duration
     const startTime = 0;
     const endTime = startTime + baseDuration;
 
-    timeline.add({ startTime, endTime, sceneId: "intro", transitionDuration: 0 });
+    timeline.add({ startTime, endTime, sceneId: "build", transitionDuration: 0 });
     timelineEnd = endTime;
-    lastScheduledScene = "intro";
+    lastScheduledScene = "build";
   }
   // No more auto-extensions - Director controls all subsequent scenes
 }
 
-// Seed only the initial intro scene
+// Seed only the initial build scene
 extendTimeline(1);
 
 // --- Resize handler ---
@@ -842,8 +867,8 @@ function frame(now: number) {
     manualMode.updateSliders();
   }
 
-  // Tap gesture: firework burst + optional spring poke
-  if (input.tapped) {
+  // Tap gesture: firework burst + optional spring poke (only when Director is enabled)
+  if (input.tapped && director?.enabled) {
     // Firework burst at tap location
     gpuParticles.firework(input.tapX, input.tapY, 0.5);
     
@@ -936,13 +961,13 @@ function frame(now: number) {
 
   const transition = timeline.getTransitionState(clock.elapsed);
   
-  // Safety check: ensure we always have a valid scene (fallback to intro if needed)
+  // Safety check: ensure we always have a valid scene (fallback to build if needed)
   if (!transition || !transition.current) {
-    console.warn("[MAIN] No active scene found, falling back to intro");
+    console.warn("[MAIN] No active scene found, falling back to build");
     timeline.add({
       startTime: 0,
       endTime: Number.MAX_SAFE_INTEGER,
-      sceneId: "intro",
+      sceneId: "build",
       transitionDuration: 0
     });
   }

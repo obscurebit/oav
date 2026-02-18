@@ -22,29 +22,31 @@ export interface ToolBridgeDeps {
 
 /** Named visual presets — curated param combos for distinct visual moods. */
 export const PRESETS: Record<string, Record<string, number>> = {
-  noir:        { saturation: 0.15, contrast: 2.2, intensity: 0.4, grain: 0.6, warmth: -0.3, bloom: 0, warp: 0.3, brightness: 0.4, vignette: 0.8 },
-  vaporwave:   { hue: 0.85, saturation: 1.8, bloom: 1.2, pixelate: 0.3, warmth: 0.2, speed: 0.6, aberration: 0.3, brightness: 0.7 },
-  glitch_art:  { glitch: 0.8, aberration: 0.7, edge: 0.6, strobe: 0.3, speed: 2.0, contrast: 1.8, brightness: 0.6, saturation: 0.9 },
-  underwater:  { hue: 0.55, contrast: 0.6, wobble: 0.7, bloom: 0.8, saturation: 0.7, speed: 0.5, warp: 0.8, brightness: 0.5, warmth: -0.2 },
-  fire:        { hue: 0.05, intensity: 0.9, warp: 2.0, ridge: 0.7, bloom: 0.6, warmth: 0.8, speed: 1.5, brightness: 0.8 },
-  ice:         { hue: 0.5, saturation: 0.5, contrast: 2.0, cells: 0.7, warmth: -0.8, bloom: 0.4, speed: 0.4, brightness: 0.7 },
-  psychedelic: { saturation: 2.0, spin: 0.8, symmetry: 6, warp: 1.5, bloom: 1.0, speed: 2.0, hue: 0.8, brightness: 0.8 },
-  minimal:     { intensity: 0.35, warp: 0.1, grain: 0, bloom: 0, glitch: 0, aberration: 0, saturation: 0.8, contrast: 1.0, speed: 0.6, brightness: 0.6 },
-  cosmic:      { hue: 0.75, bloom: 1.5, octaves: 7, zoom: 0.4, intensity: 0.6, warp: 0.8, saturation: 1.3, brightness: 0.7 },
-  industrial:  { saturation: 0.3, ridge: 0.8, grain: 0.5, contrast: 2.0, edge: 0.5, warmth: -0.2, speed: 1.2, brightness: 0.5 },
-  dream:       { speed: 0.3, wobble: 0.5, bloom: 1.2, warmth: 0.4, saturation: 0.8, intensity: 0.5, warp: 0.6, brightness: 0.7 },
-  crystal:     { cells: 0.8, contrast: 2.0, symmetry: 8, hue: 0.6, bloom: 0.5, saturation: 1.2, brightness: 0.8 },
-  organic:     { warp: 2.5, warmth: 0.5, edge: 0, bloom: 0.8, saturation: 1.2, speed: 0.7, noise_scale: 2.0, brightness: 0.6 },
-  digital:     { pixelate: 0.6, edge: 0.7, glitch: 0.4, hue: 0.5, speed: 2.0, contrast: 1.5, saturation: 1.5, brightness: 0.7 },
-  zen:         { hue: 0.6, saturation: 0.7, bloom: 0.4, speed: 0.1, zoom: 1.0, intensity: 0.3, warmth: 0.1, contrast: 1.0, brightness: 0.6, vignette: 0.2, warp: 0.1, spin: 0.05, aberration: 0, noise_scale: 0.5, ridge: 0.1 },
-  storm:       { speed: 3.0, warp: 2.5, strobe: 0.4, aberration: 0.5, intensity: 0.85, contrast: 1.5, brightness: 0.4, warmth: 0.2 },
-  aurora:      { hue: 0.38, bloom: 1.0, wobble: 0.4, saturation: 1.6, warmth: -0.3, speed: 0.6, warp: 0.8, brightness: 0.7 },
-  lava:        { hue: 0.04, warp: 2.2, ridge: 0.8, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.8, brightness: 0.8 },
-  fireworks:   { bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, hue: 0.05, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3 },
-  sparkle_field: { bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, hue: 0.6, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0 },
-  electric_storm: { bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, hue: 0.6, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3 },
-  lightning:    { bloom: 1.5, strobe: 0.9, saturation: 0.8, speed: 4.0, zoom: 0.4, intensity: 1.0, warmth: -0.4, contrast: 2.5, vignette: 0.1, hue: 0.55, warp: 0.2, spin: 0.1, aberration: 0.8, noise_scale: 8, ridge: 0.6, glitch: 0.4 },
-  nightmare:   { hue: 0.0, saturation: 0.8, bloom: 0.3, speed: 1.5, zoom: 1.1, intensity: 0.9, warmth: -0.5, contrast: 2.0, vignette: 0.8, warp: 1.2, spin: 0.5, aberration: 0.3, noise_scale: 5, ridge: 0.6, glitch: 0.4 },
+  noir:        { hue: 0.0, hue2: 0.05, hue3: 0.95, saturation: 0.15, contrast: 2.2, intensity: 0.4, grain: 0.6, warmth: -0.3, bloom: 0, warp: 0.3, brightness: 0.4, vignette: 0.8, color_split: 0.3, palette_shift: 0.1 },
+  vaporwave:   { hue: 0.85, hue2: 0.75, hue3: 0.95, saturation: 1.8, bloom: 1.2, pixelate: 0.3, warmth: 0.2, speed: 0.6, aberration: 0.3, brightness: 0.7, color_split: 0.6, palette_shift: 0.4 },
+  glitch_art:  { hue: 0.1, hue2: 0.9, hue3: 0.5, glitch: 0.8, aberration: 0.7, edge: 0.6, strobe: 0.3, speed: 2.0, contrast: 1.8, brightness: 0.6, saturation: 0.9, color_split: 0.8, palette_shift: 0.9 },
+  underwater:  { hue: 0.55, hue2: 0.6, hue3: 0.5, contrast: 0.6, wobble: 0.8, bloom: 0.8, saturation: 0.7, speed: 0.5, warp: 0.6, brightness: 0.5, warmth: -0.2, color_split: 0.4, palette_shift: 0.2, noise_scale: 3.0, octaves: 4, drift_y: 0.3, ridge: 0.2 },
+  fire:        { hue: 0.08, hue2: 0.15, hue3: 0.02, saturation: 3.0, contrast: 3.0, intensity: 1.5, warmth: 1.0, brightness: 1.2, warp: 5.0, ridge: 1.5, bloom: 0.5, speed: 5.0, glitch: 0.5, strobe: 0.7, color_split: 1.0, palette_shift: 0.5, noise_scale: 8.0, octaves: 7, spin: 0.6, wobble: 0.8, edge: 1.0, zoom: 0.4, fire_mode: 1.0 },
+  ice:         { hue: 0.55, hue2: 0.6, hue3: 0.5, saturation: 0.1, contrast: 2.2, cells: 0.8, warmth: -0.9, bloom: 0.3, speed: 0.3, brightness: 0.8, color_split: 0.2, palette_shift: 0.1, symmetry: 8, spin: 0.1, warp: 0.2, ridge: 0.6, edge: 0.4, zoom: 0.8 },
+  psychedelic: { hue: 0.8, hue2: 0.2, hue3: 0.5, saturation: 2.0, spin: 0.8, symmetry: 6, warp: 1.5, bloom: 1.0, speed: 2.0, brightness: 0.8, color_split: 0.9, palette_shift: 0.7 },
+  minimal:     { hue: 0.5, hue2: 0.5, hue3: 0.5, intensity: 0.6, warp: 0.05, grain: 0, bloom: 0, glitch: 0, aberration: 0, saturation: 0.8, contrast: 1.0, speed: 0.3, brightness: 0.8, color_split: 0.1, palette_shift: 0.0, noise_scale: 1.0, octaves: 2, zoom: 1.2 },
+  cosmic:      { hue: 0.75, hue2: 0.15, hue3: 0.9, bloom: 1.5, octaves: 7, zoom: 0.4, intensity: 0.6, warp: 0.8, saturation: 1.3, brightness: 0.7, color_split: 0.7, palette_shift: 0.5 },
+  industrial:  { hue: 0.1, hue2: 0.05, hue3: 0.15, saturation: 0.3, ridge: 0.8, grain: 0.5, contrast: 2.0, edge: 0.5, warmth: -0.2, speed: 1.2, brightness: 0.7, color_split: 0.3, palette_shift: 0.1, noise_scale: 4.0, octaves: 5, warp: 0.3, glitch: 0.2, aberration: 0.4 },
+  dream:       { hue: 0.3, hue2: 0.7, hue3: 0.5, speed: 0.3, wobble: 0.6, bloom: 1.2, warmth: 0.4, saturation: 0.8, intensity: 0.5, warp: 0.4, brightness: 0.7, color_split: 0.5, palette_shift: 0.3, noise_scale: 2.0, octaves: 3, spin: 0.15, drift_x: 0.2, drift_y: 0.1 },
+  crystal:     { hue: 0.6, hue2: 0.55, hue3: 0.65, cells: 0.8, contrast: 2.0, symmetry: 8, bloom: 0.5, saturation: 1.2, brightness: 0.8, color_split: 0.4, palette_shift: 0.2, edge: 0.6, zoom: 0.9, noise_scale: 2.5, octaves: 4, spin: 0.05, ridge: 0.3 },
+  organic:     { hue: 0.3, hue2: 0.45, hue3: 0.15, warp: 2.5, warmth: 0.5, edge: 0, bloom: 0.8, saturation: 1.2, speed: 0.7, noise_scale: 2.0, brightness: 0.6, color_split: 0.6, palette_shift: 0.4, octaves: 5, wobble: 0.3, spin: 0.1, drift_x: 0.2, drift_y: 0.1 },
+  digital:     { hue: 0.5, hue2: 0.0, hue3: 0.8, pixelate: 0.6, edge: 0.7, glitch: 0.4, speed: 2.0, contrast: 1.5, saturation: 1.5, brightness: 0.7, color_split: 0.5, palette_shift: 0.6, aberration: 0.5, noise_scale: 1.5, octaves: 3, warp: 0.1, strobe: 0.1 },
+  zen:         { hue: 0.6, hue2: 0.65, hue3: 0.55, saturation: 0.7, bloom: 0.4, speed: 0.1, zoom: 1.0, intensity: 0.5, warmth: 0.1, contrast: 1.0, brightness: 0.8, vignette: 0.2, warp: 0.1, spin: 0.05, aberration: 0, noise_scale: 0.5, ridge: 0.1, color_split: 0.2, palette_shift: 0.1 },
+  storm:       { hue: 0.0, hue2: 0.1, hue3: 0.95, speed: 3.0, warp: 2.5, strobe: 0.4, aberration: 0.5, intensity: 0.85, contrast: 1.5, brightness: 0.4, warmth: 0.2, color_split: 0.7, palette_shift: 0.8 },
+  aurora:      { hue: 0.38, hue2: 0.25, hue3: 0.5, bloom: 1.0, wobble: 0.6, saturation: 1.6, warmth: -0.3, speed: 0.4, warp: 0.4, brightness: 0.7, color_split: 0.6, palette_shift: 0.4, noise_scale: 3.5, octaves: 4, symmetry: 3, spin: 0.05, drift_y: 0.4, ridge: 0.1 },
+  lava:        { hue: 0.04, hue2: 0.08, hue3: 0.0, warp: 1.8, ridge: 0.6, bloom: 0.8, intensity: 0.9, warmth: 0.9, speed: 0.6, brightness: 0.8, color_split: 0.5, palette_shift: 0.2, wobble: 0.8, noise_scale: 2.5, octaves: 4, drift_x: 0.3, drift_y: 0.2 },
+  lightning:    { hue: 0.55, hue2: 0.6, hue3: 0.1, bloom: 1.5, strobe: 0.9, saturation: 0.8, speed: 4.0, zoom: 0.4, intensity: 1.0, warmth: -0.4, contrast: 2.5, vignette: 0.1, warp: 0.2, spin: 0.1, aberration: 0.8, noise_scale: 8, ridge: 0.6, glitch: 0.4, color_split: 0.9, palette_shift: 1.0 },
+  nightmare:   { hue: 0.0, hue2: 0.8, hue3: 0.3, saturation: 0.8, bloom: 0.3, speed: 1.5, zoom: 1.1, intensity: 0.9, warmth: -0.5, contrast: 2.0, vignette: 0.8, warp: 1.2, spin: 0.5, aberration: 0.3, noise_scale: 5, ridge: 0.6, glitch: 0.4, color_split: 0.8, palette_shift: 0.6 },
+  
+  // GPU effect presets
+  fireworks:   { hue: 0.05, hue2: 0.1, hue3: 0.0, bloom: 0.4, strobe: 0.2, saturation: 1.0, speed: 1.2, zoom: 0.3, intensity: 0.8, warmth: 0.5, contrast: 1.8, vignette: 1.2, warp: 0.2, spin: 0, aberration: 0.05, noise_scale: 4, ridge: 0.3, color_split: 0.6, palette_shift: 0.3 },
+  sparkle_field: { hue: 0.6, hue2: 0.65, hue3: 0.55, bloom: 0.6, saturation: 1.2, speed: 0.4, zoom: 1.0, intensity: 0.6, warmth: -0.2, contrast: 1.5, vignette: 0.5, warp: 0.1, spin: 0, aberration: 0.1, noise_scale: 3, ridge: 0, color_split: 0.3, palette_shift: 0.1 },
+  electric_storm: { hue: 0.6, hue2: 0.1, hue3: 0.8, bloom: 1.2, strobe: 0.8, saturation: 1.5, speed: 2.5, zoom: 0.6, intensity: 0.95, warmth: 0.3, contrast: 2.0, vignette: 0.3, warp: 0.4, spin: 0.2, aberration: 0.6, noise_scale: 6, ridge: 0.4, glitch: 0.3, color_split: 0.9, palette_shift: 0.8 },
   
   // Word presets - dramatic scene titles with matching visuals
   emergence: { bloom: 0.4, saturation: 0.7, speed: 0.3, zoom: 1.2, intensity: 0.6, warmth: 0.1, contrast: 1.3, vignette: 0.6, hue: 0.58, warp: 0.2, spin: 0, aberration: 0, noise_scale: 1.8, ridge: 0, brightness: 0.6 },
@@ -110,8 +112,8 @@ const WORD_TO_SCENE_THEME: Record<string, string> = {
 
 export class ToolBridge {
   private _deps: ToolBridgeDeps;
-
-  /** The currently active preset/theme (null = no theme). */
+  private _activeTheme: string | null = null;
+  private _presetLockTime: number = 0; // When preset was last applied
   activeTheme: string | null = null;
 
   constructor(deps: ToolBridgeDeps) {
@@ -272,7 +274,7 @@ export class ToolBridge {
   private _transitionTo(args: Record<string, unknown>): string {
     const sceneId = String(args.scene_id ?? "");
     const duration = Math.max(1, Math.min(8, Number(args.duration ?? 3)));
-    const validScenes = ["intro", "build", "climax", "outro"];
+    const validScenes = ["build"];
     if (!validScenes.includes(sceneId)) return `unknown scene: ${sceneId}`;
 
     // Get current time and add new scene entry
@@ -419,18 +421,39 @@ export class ToolBridge {
     // Special case: presets with GPU effects
     if (typeof window !== 'undefined') {
       const oav = (window as any).__OAV__;
-      if (preset === "fireworks" && oav?.gpuParticles) {
-      // 4th of July fireworks show - unpredictable and natural!
-      const colors = ["red", "blue", "gold", "green", "purple", "white", "orange", "pink", "rainbow"];
-      const types = ["chrysanthemum", "willow", "palm", "crossette", "salute"];
+      
+      // Clear particle system for all presets to ensure clean state
+      if (oav?.gpuParticles) {
+        oav.gpuParticles.clear();
+      }
+      
+      if (preset === "fireworks" && oav?.gpuParticles && !(window as any).__OAV__?.manualMode?.isEnabled) {
+      // Enhanced fireworks with different types and colors
+      oav.gpuParticles.enhancedFirework({
+        x: -0.5, y: 0.2,
+        intensity: 0.8,
+        color: "gold",
+        type: "chrysanthemum"
+      });
+      setTimeout(() => oav.gpuParticles.enhancedFirework({
+        x: 0.3, y: -0.1,
+        intensity: 1.0,
+        color: "red",
+        type: "willow"
+      }), 400);
+      setTimeout(() => oav.gpuParticles.enhancedFirework({
+        x: 0.0, y: 0.4,
+        intensity: 0.6,
+        color: "blue",
+        type: "palm"
+      }), 800);
       
       const createRandomFirework = () => {
-        // Random position across the sky
-        const x = (Math.random() - 0.5) * 1.6;
-        const y = 0.2 + Math.random() * 0.6; // Upper half of screen
-        
-        // Random size and intensity
-        const intensity = 0.5 + Math.random() * 1.2; // 0.5 to 1.7
+        const x = (Math.random() - 0.5) * 1.5;
+        const y = -0.3 + Math.random() * 0.6;
+        const intensity = 0.4 + Math.random() * 0.8;
+        const colors = ["red", "blue", "green", "gold", "purple", "white", "rainbow"];
+        const types = ["chrysanthemum", "willow", "palm", "crossette", "salute"];
         const color = colors[Math.floor(Math.random() * colors.length)];
         const type = types[Math.floor(Math.random() * types.length)];
         
@@ -441,7 +464,7 @@ export class ToolBridge {
           setTimeout(() => {
             const followUpX = x + (Math.random() - 0.5) * 0.3;
             const followUpY = y + (Math.random() - 0.5) * 0.3;
-            const followUpIntensity = intensity * 0.7;
+            const followUpIntensity = intensity * 0.6;
             const followUpColor = colors[Math.floor(Math.random() * colors.length)];
             const followUpType = types[Math.floor(Math.random() * types.length)];
             
@@ -452,22 +475,19 @@ export class ToolBridge {
               color: followUpColor,
               type: followUpType
             });
-          }, 100 + Math.random() * 400);
+          }, 100 + Math.random() * 200);
         }
       };
       
-      // Create initial burst of fireworks
       const initialBurst = () => {
-        const burstCount = 3 + Math.floor(Math.random() * 4); // 3-7 fireworks
-        for (let i = 0; i < burstCount; i++) {
-          setTimeout(() => createRandomFirework(), i * (200 + Math.random() * 300));
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => createRandomFirework(), i * (200 + Math.random() * 200));
         }
       };
       
-      // Continuous random fireworks
       const continuousShow = () => {
-        // Random intervals between fireworks (200ms to 1.5s)
-        const nextInterval = 200 + Math.random() * 1300;
+        // Random intervals between fireworks (200ms to 2s for more variety)
+        const nextInterval = 200 + Math.random() * 1800;
         
         // Sometimes launch multiple at once
         if (Math.random() < 0.2) {
@@ -731,23 +751,18 @@ export class ToolBridge {
       }
     }
 
+    // Apply all parameters with immediate effect for consistency
     let count = 0;
-    for (const [name, target] of Object.entries(values)) {
-      if (!p.has(name)) continue;
-      
-      // For brightness, contrast, and intensity, apply directly (no drift) for immediate effect
-      if (name === 'brightness' || name === 'contrast' || name === 'intensity') {
-        const current = p.get(name);
-        const scaled = current + (target - current) * scale;
-        p.set(name, scaled);
-      } else {
-        // Scale the difference from current value
-        const current = p.get(name);
-        const scaled = current + (target - current) * scale;
-        p.drift(name, scaled, duration);
+    for (const [name, value] of Object.entries(values)) {
+      if (this._deps.params.has(name)) {
+        // Use set() for immediate, consistent results instead of drift()
+        this._deps.params.set(name, value);
+        count++;
       }
-      count++;
     }
+    
+    // Lock preset for 2 seconds to prevent immediate overrides
+    this._presetLockTime = this._deps.clock.elapsed;
 
     // Apply audio parameters from separate audio presets
     const audioPreset = AUDIO_PRESETS[preset];
@@ -876,6 +891,16 @@ export class ToolBridge {
     p.set("pulse", Math.min(scale, 1.0));
 
     return `applied preset "${preset}" (${count} visual params, ${audioPreset ? Object.keys(audioPreset).length : 0} audio params, scale=${scale.toFixed(1)})`;
+  }
+
+  /** Check if preset is currently locked (preventing overrides) */
+  isPresetLocked(): boolean {
+    return this._deps.clock.elapsed - this._presetLockTime < 2.0;
+  }
+
+  /** Get time since last preset was applied */
+  timeSincePreset(): number {
+    return this._deps.clock.elapsed - this._presetLockTime;
   }
 
   private _applyAudioPreset(args: Record<string, unknown>): string {

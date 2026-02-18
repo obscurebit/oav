@@ -121,6 +121,28 @@ export class GPUParticleSystem {
     this._tf = gl.createTransformFeedback()!;
   }
 
+  /** Clear all particles immediately */
+  clear(): void {
+    // Reset all particles to dead state
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const off = i * FLOATS_PER_PARTICLE;
+      this._cpuData[off + 1] = -999; // y position offscreen
+      this._cpuData[off + 10] = 1;   // life = 1
+      this._cpuData[off + 11] = 1;   // age = 1 (dead)
+    }
+    
+    // Upload to both buffers
+    const gl = this._gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[0]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this._cpuData);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[1]);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this._cpuData);
+    
+    // Reset alive count
+    this._aliveCount = 0;
+    this._nextSlot = 0;
+  }
+
   /** Emit a burst of particles. */
   emit(params: EmitParams): void {
     const count = Math.min(params.count, MAX_PARTICLES);
@@ -188,15 +210,10 @@ export class GPUParticleSystem {
       // Ensure transform feedback is completely unbound when no particles
       const gl = this._gl;
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
-      gl.bindBuffer(gl.ARRAY_BUFFER, null);
-      gl.bindVertexArray(null);
       return;
     }
 
     const gl = this._gl;
-    const readIdx = this._current;
-    const writeIdx = 1 - readIdx;
 
     // Bind update program
     gl.useProgram(this._updateProgram);
@@ -207,11 +224,11 @@ export class GPUParticleSystem {
     gl.uniform1f(gl.getUniformLocation(this._updateProgram, "uTurbulence"), this.turbulence);
 
     // Bind read VAO
-    gl.bindVertexArray(this._vaos[readIdx]);
+    gl.bindVertexArray(this._vaos[this._current]);
 
     // Bind write buffer as transform feedback target
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this._tf);
-    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, this._vbos[writeIdx]);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, this._vbos[1 - this._current]);
 
     // Disable rasterization — we only want the transform feedback output
     gl.enable(gl.RASTERIZER_DISCARD);
@@ -226,11 +243,35 @@ export class GPUParticleSystem {
     gl.bindVertexArray(null);
 
     // Swap buffers
-    this._current = writeIdx;
+    this._current = 1 - this._current;
 
     // Read back isn't needed — we just swap which buffer we read/write
     // But we need to keep CPU data in sync for new emissions
     // New emissions always upload to the current read buffer
+
+    this._countAliveParticles();
+  }
+
+  /** Count alive particles by checking which ones are not dead */
+  private _countAliveParticles(): void {
+    // Read back the current particle data to count alive particles
+    const gl = this._gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this._vbos[this._current]);
+    gl.getBufferSubData(gl.ARRAY_BUFFER, 0, this._cpuData);
+    
+    let aliveCount = 0;
+    for (let i = 0; i < MAX_PARTICLES; i++) {
+      const off = i * FLOATS_PER_PARTICLE;
+      const age = this._cpuData[off + 11];
+      const life = this._cpuData[off + 10];
+      
+      // Particle is alive if age < life
+      if (age < life) {
+        aliveCount++;
+      }
+    }
+    
+    this._aliveCount = aliveCount;
   }
 
   /** Render all alive particles as points. */

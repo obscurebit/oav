@@ -73,7 +73,7 @@ export class Renderer {
     const res: [number, number] = [gl.drawingBufferWidth, gl.drawingBufferHeight];
     
     // Get current scene from timeline or use a default
-    const currentSceneId = state.transition?.current.sceneId || "intro";
+    const currentSceneId = state.transition?.current.sceneId || "build";
     const currentScene = this._registry.get(currentSceneId);
     
     if (currentScene) {

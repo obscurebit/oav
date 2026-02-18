@@ -277,55 +277,19 @@ export class Audio {
     this._padGain!.gain.setValueAtTime(this._padGain!.gain.value, now);
 
     switch (sceneId) {
-      case "intro":
-        // Sub-dominant, quiet, intimate
-        this._subGain.gain.linearRampToValueAtTime(0.18, t);
-        this._harmonicGain!.gain.linearRampToValueAtTime(0.04 + progress * 0.06, t);
-        this._noiseGain!.gain.linearRampToValueAtTime(0.02, t);
-        this._padGain!.gain.linearRampToValueAtTime(0.02 + progress * 0.04, t);
-        break;
       case "build":
-        // Harmonics and noise rise, energy builds
-        this._subGain.gain.linearRampToValueAtTime(0.15, t);
-        this._harmonicGain!.gain.linearRampToValueAtTime(0.08 + progress * 0.08, t);
-        this._noiseGain!.gain.linearRampToValueAtTime(0.04 + progress * 0.06, t);
-        this._padGain!.gain.linearRampToValueAtTime(0.06 + progress * 0.04, t);
-        // Open up noise filter as scene progresses
+        // Growing complexity, layered harmonics
+        this._subGain.gain.linearRampToValueAtTime(0.25 + progress * 0.1, t);
+        this._harmonicGain!.gain.linearRampToValueAtTime(0.12 + progress * 0.08, t);
+        this._noiseGain!.gain.linearRampToValueAtTime(0.06 + progress * 0.04, t);
+        this._padGain!.gain.linearRampToValueAtTime(0.08 + progress * 0.06, t);
+        
+        // Noise filter opens up as structure builds
         if (this._noiseFilter) {
-          this._noiseFilter.frequency.cancelScheduledValues(now);
-          this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
-          this._noiseFilter.frequency.linearRampToValueAtTime(300 + progress * 800, t);
+          this._noiseFilter.frequency.linearRampToValueAtTime(3 + progress * 4, t);
+          this._noiseFilter.Q.linearRampToValueAtTime(2 + progress * 2, t);
         }
         break;
-      case "climax":
-        // Everything loud, noise wide open, intense
-        this._subGain.gain.linearRampToValueAtTime(0.20, t);
-        this._harmonicGain!.gain.linearRampToValueAtTime(0.14, t);
-        this._noiseGain!.gain.linearRampToValueAtTime(0.10, t);
-        this._padGain!.gain.linearRampToValueAtTime(0.10, t);
-        if (this._noiseFilter) {
-          this._noiseFilter.frequency.cancelScheduledValues(now);
-          this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
-          this._noiseFilter.frequency.linearRampToValueAtTime(1200, t);
-          this._noiseFilter.Q.cancelScheduledValues(now);
-          this._noiseFilter.Q.setValueAtTime(this._noiseFilter.Q.value, now);
-          this._noiseFilter.Q.linearRampToValueAtTime(2, t);
-        }
-        break;
-      case "outro": {
-        // Everything fades, pad lingers, noise becomes breath
-        const fade = 1 - progress;
-        this._subGain.gain.linearRampToValueAtTime(0.12 * fade, t);
-        this._harmonicGain!.gain.linearRampToValueAtTime(0.06 * fade, t);
-        this._noiseGain!.gain.linearRampToValueAtTime(0.03 * fade, t);
-        this._padGain!.gain.linearRampToValueAtTime(0.08 * fade, t);
-        if (this._noiseFilter) {
-          this._noiseFilter.frequency.cancelScheduledValues(now);
-          this._noiseFilter.frequency.setValueAtTime(this._noiseFilter.frequency.value, now);
-          this._noiseFilter.frequency.linearRampToValueAtTime(200, t);
-        }
-        break;
-      }
     }
   }
 

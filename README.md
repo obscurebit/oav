@@ -2,7 +2,7 @@
 
 A living, breathing audiovisual portal in the browser. Not a visualizer. Not a demo. A presence.
 
-![OAV Screenshot](e2e/screenshots/manifesto-magic.png)
+![OAV Screenshot](e2e/screenshots/individual-storm.png)
 
 ## What Is This?
 
