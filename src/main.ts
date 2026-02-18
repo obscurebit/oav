@@ -11,7 +11,7 @@ import {
 } from "./renderer";
 import { GPUParticleSystem } from "./renderer/particles/gpu-particles";
 import { GPUSpringSystem } from "./renderer/particles/gpu-springs";
-import { EnhancedAudio } from "./audio/enhanced-audio";
+import { Audio } from "./audio/audio";
 import { TextParticleSystem, TextOverlay, WordInput } from "./overlay";
 import { Director, AmbientVoice, ToolBridge, Poet, PRESETS } from "./llm";
 import type { DirectorContext, ToolCall, PoetContext, PoetDirective, PoetStyle } from "./llm";
@@ -40,7 +40,7 @@ const params = new ParameterStore();
 const timeline = new Timeline();
 const renderer = new Renderer(gl, registry);
 const input = new Input(canvas);
-const audio = new EnhancedAudio();
+const audio = new Audio();
 
 // Connect audio to renderer for reactive effects
 renderer.audio = audio;
@@ -444,39 +444,37 @@ function applyMoodReaction(reaction: MoodReaction["keystroke"] | MoodReaction["c
     
     switch (mood.name) {
       case 'explosive':
-        audio.triggerKick(drumIntensity);
-        setTimeout(() => audio.triggerSnare(drumIntensity * 0.7), 100);
+        audio.playPop(0.8, 0.9);
         break;
       case 'chaotic':
-        audio.triggerDrumPattern('dnb', drumIntensity * 0.8);
+        audio.playPop(0.6, 0.7);
         break;
       case 'stormy':
-        audio.triggerKick(drumIntensity);
-        setTimeout(() => audio.triggerBass(drumIntensity * 0.8, 0.5), 50);
+        audio.playPop(0.7, 0.8);
         break;
       case 'psychedelic':
-        audio.triggerDrumPattern('techno', drumIntensity * 0.6);
+        audio.playPop(0.5, 0.6);
         break;
       case 'crystalline':
-        audio.triggerSnare(drumIntensity);
-        setTimeout(() => audio.triggerHihat(drumIntensity * 0.5), 75);
+        audio.playPop(0.4, 0.3);
         break;
       case 'watery':
-        audio.triggerHihat(drumIntensity * 0.6);
+        audio.playPop(0.3, 0.2);
         break;
       case 'volcanic':
-        audio.triggerKick(drumIntensity);
-        setTimeout(() => audio.triggerSnare(drumIntensity * 0.8), 150);
+        audio.playPop(0.8, 0.9);
         break;
       case 'energetic':
-        audio.triggerDrumPattern('basic', drumIntensity);
+        audio.playPop(0.6, 0.7);
         break;
       default:
-        audio.triggerKick(drumIntensity * 0.7);
+        audio.playPop(0.4, 0.4);
     }
   } else {
     // This is a keystroke reaction - use impact
-    audio.triggerSFX({ type: 'impact', pitch: 1.0 + reaction.pop * 0.5, duration: 0.1, volume: reaction.pop * scale, filter: 0.5, spatial: 0.5 });
+    const intensity = reaction.pop * scale;
+    const energy = Math.min(reaction.pop * 2, 1.0); // Higher energy for stronger reactions
+    audio.playPop(intensity, energy);
   }
   
   params.set("pulse", Math.min(params.get("pulse") + reaction.pulse * scale, 1.0));
@@ -758,13 +756,9 @@ function frame(now: number) {
   params.set("bass", audio.bass);
   params.set("brightness", audio.brightness);
   
-    // Log audio analysis results
+    // Log audio analysis results (only significant events)
   if (audio.beatHit) {
-    console.log("[DEBUG] Creating AUDIO-STREAM log for beat hit");
     debug.log("AUDIO-STREAM", `BEAT hit (amp:${audio.amplitude.toFixed(3)}, bass:${audio.bass.toFixed(3)})`);
-  } else if (audio.amplitude > 0.1 || audio.bass > 0.1) {
-    console.log("[DEBUG] Creating AUDIO-STREAM log for amplitude", audio.amplitude, audio.bass);
-    debug.log("AUDIO-STREAM", `amp:${audio.amplitude.toFixed(3)}, bass:${audio.bass.toFixed(3)}, bright:${audio.brightness.toFixed(3)}`);
   }
 
   // Derive audio mood from visual params (every frame, but setMood smooths internally)
@@ -882,12 +876,6 @@ function frame(now: number) {
       const lfoRate = 0.1 + mouseY * 2.0; // 0.1Hz to 2.1Hz based on Y
       const reverbWet = Math.min(mouseEnergy * 0.5, 0.8); // More movement = more reverb
       
-      audio.setParams({
-        filterFreq,
-        lfoRate,
-        reverbWet
-      });
-      
       // Trigger drums based on drag energy
       if (mouseEnergy > 0.3) {
         const drumIntensity = Math.min(mouseEnergy, 1.0);
@@ -895,18 +883,14 @@ function frame(now: number) {
         // Different drums based on drag position
         if (mouseX < 0.3) {
           // Left side - kicks
-          audio.triggerKick(drumIntensity * 0.6);
         } else if (mouseX > 0.7) {
           // Right side - snares
-          audio.triggerSnare(drumIntensity * 0.5);
         } else {
           // Center - hihats
-          audio.triggerHihat(drumIntensity * 0.4);
         }
         
         // Add bass on strong drags
         if (mouseEnergy > 0.7) {
-          audio.triggerBass(drumIntensity * 0.5, 0.8 + mouseY * 0.4);
         }
       }
     }
@@ -917,6 +901,15 @@ function frame(now: number) {
 
   // Update and render text particles (audio-reactive)
   particles.update(dt, audio.bass, audio.amplitude);
+  
+  // Auto-switch drone preset when visual preset changes (check once per frame)
+  if (audioStarted) {
+    const currentPreset = toolBridge.activeTheme;
+    if (currentPreset && currentPreset !== lastAudioPreset) {
+      audio.setDronePreset(currentPreset);
+      lastAudioPreset = currentPreset;
+    }
+  }
   overlay.render(particles.particles);
   
   // Create trailing particles on mouse movement for dreamlike effect
@@ -1034,11 +1027,15 @@ function frame(now: number) {
 
 // First mousedown starts audio (AudioContext requires user gesture)
 let audioStarted = false;
+let lastAudioPreset = '';
+
 canvas.addEventListener("mousedown", () => {
   if (!audioStarted) {
     audio.init();
-    audio.start();
+    audio.playDrone();
     audioStarted = true;
+    
+    console.log('[Audio] Started ambient audio system');
   }
   lastUserInteraction = clock.elapsed;
 });

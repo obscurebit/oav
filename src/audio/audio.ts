@@ -645,6 +645,63 @@ export class Audio {
     await this.playLofiTrack(track.id);
   }
 
+  /** Vary drone parameters based on preset mood */
+  setDronePreset(preset: string): void {
+    if (!this._ctx || !this._subGain || !this._harmonicGain || !this._noiseGain || !this._padGain) return;
+
+    const presets = {
+      chill: { subFreq: 45, subGain: 0.15, harmGain: 0.06, noiseGain: 0.03, padGain: 0.05, filterFreq: 300 },
+      dreamy: { subFreq: 40, subGain: 0.12, harmGain: 0.08, noiseGain: 0.04, padGain: 0.07, filterFreq: 250 },
+      dark: { subFreq: 50, subGain: 0.20, harmGain: 0.05, noiseGain: 0.05, padGain: 0.04, filterFreq: 400 },
+      energetic: { subFreq: 55, subGain: 0.18, harmGain: 0.10, noiseGain: 0.06, padGain: 0.08, filterFreq: 600 },
+      nostalgic: { subFreq: 42, subGain: 0.14, harmGain: 0.07, noiseGain: 0.03, padGain: 0.06, filterFreq: 350 },
+      noir: { subFreq: 48, subGain: 0.16, harmGain: 0.04, noiseGain: 0.04, padGain: 0.03, filterFreq: 450 },
+      fire: { subFreq: 60, subGain: 0.22, harmGain: 0.12, noiseGain: 0.08, padGain: 0.10, filterFreq: 800 },
+      ice: { subFreq: 35, subGain: 0.10, harmGain: 0.05, noiseGain: 0.02, padGain: 0.03, filterFreq: 200 },
+      psychedelic: { subFreq: 52, subGain: 0.17, harmGain: 0.11, noiseGain: 0.07, padGain: 0.09, filterFreq: 700 },
+      cosmic: { subFreq: 38, subGain: 0.13, harmGain: 0.09, noiseGain: 0.05, padGain: 0.08, filterFreq: 280 },
+      storm: { subFreq: 58, subGain: 0.21, harmGain: 0.08, noiseGain: 0.09, padGain: 0.06, filterFreq: 750 },
+      lightning: { subFreq: 65, subGain: 0.25, harmGain: 0.15, noiseGain: 0.10, padGain: 0.12, filterFreq: 900 },
+      aurora: { subFreq: 36, subGain: 0.11, harmGain: 0.07, noiseGain: 0.03, padGain: 0.08, filterFreq: 220 },
+      crystal: { subFreq: 44, subGain: 0.14, harmGain: 0.06, noiseGain: 0.03, padGain: 0.07, filterFreq: 320 },
+      underwater: { subFreq: 32, subGain: 0.09, harmGain: 0.04, noiseGain: 0.02, padGain: 0.05, filterFreq: 180 },
+      lava: { subFreq: 62, subGain: 0.23, harmGain: 0.13, noiseGain: 0.09, padGain: 0.11, filterFreq: 850 },
+      organic: { subFreq: 46, subGain: 0.16, harmGain: 0.07, noiseGain: 0.04, padGain: 0.06, filterFreq: 380 },
+      vaporwave: { subFreq: 41, subGain: 0.13, harmGain: 0.08, noiseGain: 0.05, padGain: 0.07, filterFreq: 290 },
+      glitch_art: { subFreq: 54, subGain: 0.19, harmGain: 0.09, noiseGain: 0.07, padGain: 0.05, filterFreq: 650 },
+      industrial: { subFreq: 56, subGain: 0.20, harmGain: 0.06, noiseGain: 0.08, padGain: 0.04, filterFreq: 720 },
+      digital: { subFreq: 53, subGain: 0.18, harmGain: 0.11, noiseGain: 0.06, padGain: 0.09, filterFreq: 680 },
+      minimal: { subFreq: 43, subGain: 0.12, harmGain: 0.05, noiseGain: 0.02, padGain: 0.04, filterFreq: 300 },
+      zen: { subFreq: 37, subGain: 0.10, harmGain: 0.06, noiseGain: 0.02, padGain: 0.05, filterFreq: 240 }
+    };
+
+    const settings = presets[preset as keyof typeof presets] || presets.chill;
+    
+    // Apply smooth transitions
+    const now = this._ctx.currentTime;
+    const transitionTime = 1.5; // 1.5 second transition
+    
+    // Update sub bass
+    if (this._subGain) {
+      this._subGain.gain.linearRampToValueAtTime(settings.subGain, now + transitionTime);
+    }
+    
+    // Update harmonic layer
+    if (this._harmonicGain) {
+      this._harmonicGain.gain.linearRampToValueAtTime(settings.harmGain, now + transitionTime);
+    }
+    
+    // Update noise layer
+    if (this._noiseGain) {
+      this._noiseGain.gain.linearRampToValueAtTime(settings.noiseGain, now + transitionTime);
+    }
+    
+    // Update pad layer
+    if (this._padGain) {
+      this._padGain.gain.linearRampToValueAtTime(settings.padGain, now + transitionTime);
+    }
+  }
+
   dispose(): void {
     if (this._source) {
       try { this._source.stop(); } catch { /* ok */ }

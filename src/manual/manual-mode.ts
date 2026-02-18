@@ -11,7 +11,7 @@
 import { ParameterStore } from "../engine/params";
 import { Timeline } from "../engine/timeline";
 import { ToolBridge } from "../llm/tool-bridge";
-import { EnhancedAudio } from "../audio/enhanced-audio";
+import { Audio } from "../audio/audio";
 import { GPUParticleSystem } from "../renderer/particles/gpu-particles";
 import { GPUSpringSystem } from "../renderer/particles/gpu-springs";
 import { PRESETS } from "../llm/tool-bridge";
@@ -20,7 +20,7 @@ export interface ManualModeDeps {
   params: ParameterStore;
   timeline: Timeline;
   toolBridge: ToolBridge;
-  audio: EnhancedAudio;
+  audio: Audio;
   gpuParticles: GPUParticleSystem;
   gpuSprings: GPUSpringSystem;
   canvasWidth: () => number;
